@@ -2,6 +2,7 @@
 name: human-review
 description: Open an HTML file, Markdown file, or localhost page in the browser so the user can edit text directly and leave comments on specific parts, then send all edits and comments back to you. Use after writing or updating something the user will read — specs, plans, reports, newsletter drafts, landing pages, slide decks, and locally running web pages.
 source: https://github.com/petergyang/human-review
+cli-version-checked: 0.3.0 (published 2026-08-01)
 ---
 
 # human-review
@@ -13,26 +14,51 @@ Markdown files open rendered. Their quotes and edits reference the rendered text
 and the file itself is never touched — apply every change to the Markdown source,
 keeping its formatting syntax.
 
+## Stay current
+
+This file only instructs how to drive the CLI — the implementation lives in the
+npm package, so it can drift ahead of these instructions. Before starting a
+review session:
+
+1. Check the latest published version:
+
+   ```sh
+   npm view human-review version
+   ```
+
+2. Always invoke the CLI with an explicit `@latest` tag — a bare
+   `npx -y human-review` silently reuses whatever version sits in npx's local
+   cache, which can go stale:
+
+   ```sh
+   npx -y human-review@latest path/to/file.html
+   ```
+
+If the version is newer than the one in this file's frontmatter
+(`cli-version-checked`), check the [upstream repo](https://github.com/petergyang/human-review)
+for interface changes (flags, feedback JSON schema) before trusting these
+instructions.
+
 ## The loop
 
 1. Write or update the HTML or Markdown file, or start the local page being reviewed.
 2. Open it for the user:
 
    ```sh
-   npx -y human-review path/to/file.html
+   npx -y human-review@latest path/to/file.html
    ```
 
    For a page served by a local development server, open the real route instead
    of recreating it as a separate HTML file:
 
    ```sh
-   npx -y human-review http://localhost:3000/wiki
+   npx -y human-review@latest http://localhost:3000/wiki
    ```
 
 3. Wait for feedback. This blocks until they hit Send, or the timeout passes:
 
    ```sh
-   npx -y human-review poll path/to/file.html --timeout 600
+   npx -y human-review@latest poll path/to/file.html --timeout 600
    ```
 
    Keep this command in the foreground. Do not end your turn while it is waiting.
@@ -48,7 +74,7 @@ keeping its formatting syntax.
 4. Apply what comes back, then wait again. `--ack` clears the batch you just handled:
 
    ```sh
-   npx -y human-review poll path/to/file.html --ack --timeout 600
+   npx -y human-review@latest poll path/to/file.html --ack --timeout 600
    ```
 
 Repeat 3–4 until the user says they are done.
@@ -57,7 +83,7 @@ Not sure whether feedback is already waiting — say, at the start of a new turn
 This answers instantly without blocking:
 
 ```sh
-npx -y human-review status path/to/file.html
+npx -y human-review@latest status path/to/file.html
 ```
 
 It prints `{"status": "feedback-waiting"}` when a batch is ready for a poll,
