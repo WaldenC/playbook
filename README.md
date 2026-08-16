@@ -9,7 +9,15 @@ Each skill is a self-contained markdown file that an agent reads as its operatin
 | Skill | Description |
 |---|---|
 | [slide-deck](skills/slide-deck/SKILL.md) | Build styled single-page HTML slide decks from 34 pre-built templates |
+| [follow-builders-custom](skills/follow-builders-custom/SKILL.md) | HTML email pipeline on top of [zarazhangrui/follow-builders](https://github.com/zarazhangrui/follow-builders): styled digests, tagged tweets, builder cards |
 | [human-review](skills/human-review/SKILL.md) | Browser review loop for HTML/Markdown — upstream: [petergyang/human-review](https://github.com/petergyang/human-review) |
+
+## Also in this repo
+
+| Path | What |
+|---|---|
+| [output-styles/ELI5.md](output-styles/ELI5.md) | Output style: fried-brain mode — small words, short sentences, 2 options max |
+| [learning/ai-infra-layers.html](learning/ai-infra-layers.html) | Learning page: AI infrastructure stack — where AWS engineers work vs. what SGLang solves |
 
 ## How it works
 
@@ -31,5 +39,5 @@ No SDK, no API keys, no runtime. The agent reads the skill and executes.
 Each skill lives in `skills/<name>/SKILL.md`. To add one:
 
 1. Write it as a self-contained markdown file — no external dependencies, no hardcoded local paths
-2. If the skill wraps an external library, document how the agent fetches it at runtime
+2. If the skill wraps an external library, document how the agent fetches it at runtime, and record its upstream in the frontmatter (`source:`, plus `cli-version-checked:` as the drift baseline — see [human-review](skills/human-review/SKILL.md))
 3. Use the [writing-for-agents](https://github.com/mattpocock/agent-skills) principles: clear completion criteria, leading words, progressive disclosure
