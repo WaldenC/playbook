@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Where AWS engineers work vs. what SGLang solves</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :where(.grid, .flex, .layout-grid, .layout-flex) > *,
+    :where([style*="display: grid"], [style*="display:grid"], [style*="display: flex"], [style*="display:flex"]) > * {
+      min-width: 0;
+    }
+    :where(p, h1, h2, h3, h4, h5, h6, li, dd, blockquote, figcaption, td, th, .badge, .label) {
+      overflow-wrap: anywhere;
+    }
+    :where(img, svg, video, canvas, iframe) {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body class="bg-base-100 text-base-content">
+  <main class="mx-auto max-w-5xl p-6 lg:p-10">
+
+    <header class="mb-6">
+      <h1 class="text-2xl lg:text-3xl font-bold">Where AWS engineers work vs. what SGLang solves</h1>
+      <p class="mt-1 text-base-content/60">One Artificial Intelligence (AI) infrastructure stack — two very different problems.</p>
+    </header>
+
+    <!-- 1. The stack -->
+    <h2 class="text-lg font-semibold mb-3">1 · The stack</h2>
+
+    <figure class="mb-4">
+      <svg viewBox="0 0 1000 600" role="img" aria-label="Five layers of the AI infrastructure stack, from silicon at the bottom to application at the top. AWS engineers bracket the platform, cluster, and silicon layers. SGLang is highlighted in the serving runtime layer."
+        class="w-full rounded-box border border-base-content/10 bg-white shadow-sm">
+
+        <!-- application -->
+        <rect x="210" y="20"   width="774" height="100" rx="10" fill="#f3f4f6" stroke="#d1d5db"/>
+        <text x="226" y="54"   font-size="15" font-weight="700" fill="#1f2937">Application</text>
+        <text x="226" y="78"   font-size="12" fill="#4b5563">Compose model calls into products</text>
+        <text x="226" y="96"   font-size="12" fill="#4b5563">Retrieval-Augmented Generation (RAG), agents</text>
+        <text x="978" y="54"   font-size="11.5" font-style="italic" fill="#6b7280" text-anchor="end">LangChain · LlamaIndex</text>
+
+        <!-- platform -->
+        <rect x="210" y="134"  width="774" height="100" rx="10" fill="#dcfce7" stroke="#86efac"/>
+        <text x="226" y="168"  font-size="15" font-weight="700" fill="#1f2937">Platform</text>
+        <text x="226" y="192"  font-size="12" fill="#4b5563">Raw compute → managed, elastic, multi-tenant service</text>
+        <text x="978" y="168"  font-size="11.5" font-style="italic" fill="#6b7280" text-anchor="end">Bedrock (call models) · SageMaker (build models)</text>
+
+        <!-- serving runtime (highlighted: SGLang lives here) -->
+        <rect x="210" y="248"  width="774" height="100" rx="10" fill="#fef9c3" stroke="#facc15" stroke-width="1.5"/>
+        <rect x="226" y="264"  width="78"  height="26"  rx="13" fill="#6d28d9"/>
+        <text x="265" y="281"  font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">SGLang</text>
+        <text x="316" y="281"  font-size="15" font-weight="700" fill="#1f2937">Serving runtime</text>
+        <text x="226" y="306"  font-size="12" fill="#4b5563">Max tokens/sec from a fixed set of Graphics Processing Units (GPUs):</text>
+        <text x="226" y="324"  font-size="12" fill="#4b5563">batching, key-value (KV) cache, kernels</text>
+        <text x="978" y="281"  font-size="11.5" font-style="italic" fill="#6b7280" text-anchor="end">vLLM · TensorRT-LLM</text>
+
+        <!-- cluster & systems -->
+        <rect x="210" y="362"  width="774" height="100" rx="10" fill="#e0f2fe" stroke="#7dd3fc"/>
+        <text x="226" y="396"  font-size="15" font-weight="700" fill="#1f2937">Cluster &amp; systems</text>
+        <text x="226" y="420"  font-size="12" fill="#4b5563">Coordinate thousands of GPUs: scheduling,</text>
+        <text x="226" y="438"  font-size="12" fill="#4b5563">networking (Elastic Fabric Adapter), fault tolerance</text>
+        <text x="978" y="396"  font-size="11.5" font-style="italic" fill="#6b7280" text-anchor="end">SageMaker HyperPod · Slurm · NCCL · DeepSpeed</text>
+
+        <!-- silicon & hardware -->
+        <rect x="210" y="476"  width="774" height="100" rx="10" fill="#dbeafe" stroke="#93c5fd"/>
+        <text x="226" y="510"  font-size="15" font-weight="700" fill="#1f2937">Silicon &amp; hardware</text>
+        <text x="226" y="534"  font-size="12" fill="#4b5563">Cheap, dense floating-point operations:</text>
+        <text x="226" y="552"  font-size="12" fill="#4b5563">chips, power, cooling, interconnects</text>
+        <text x="978" y="510"  font-size="11.5" font-style="italic" fill="#6b7280" text-anchor="end">NVIDIA GB200 · Trainium · EC2 UltraServers · Google TPU</text>
+
+        <!-- AWS bracket: platform → silicon -->
+        <line x1="170" y1="134" x2="170" y2="576" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="170" y1="134" x2="196" y2="134" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="170" y1="576" x2="196" y2="576" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+        <text x="16" y="330" font-size="11.5" font-weight="600" fill="#b45309">AWS engineers:</text>
+        <text x="16" y="346" font-size="11.5" fill="#b45309">the systems around</text>
+        <text x="16" y="362" font-size="11.5" fill="#b45309">the model: platform,</text>
+        <text x="16" y="378" font-size="11.5" fill="#b45309">cluster &amp; silicon</text>
+      </svg>
+      <figcaption class="mt-2 text-sm text-base-content/60">Read bottom-up: upper layers run on top of lower ones — SGLang can serve on a HyperPod cluster.</figcaption>
+    </figure>
+
+    <!-- common questions at a glance -->
+    <div class="grid sm:grid-cols-2 gap-2 mb-8">
+      <div class="bg-base-200 rounded-box p-3 text-sm"><strong>Bedrock vs SageMaker?</strong> Rent the model vs rent the factory.</div>
+      <div class="bg-base-200 rounded-box p-3 text-sm"><strong>Which layer is HyperPod?</strong> Cluster &amp; systems — the GPU fleet SGLang serves on top of.</div>
+      <div class="bg-base-200 rounded-box p-3 text-sm"><strong>Which layer is EC2 UltraServers?</strong> Silicon &amp; hardware — cluster-grade fabric inside one box.</div>
+      <div class="bg-base-200 rounded-box p-3 text-sm"><strong>Does Anthropic see Bedrock data?</strong> No — traffic stays on AWS machines. Full answers in the appendix.</div>
+    </div>
+
+    <!-- 2. Same stack, two problems -->
+    <h2 class="text-lg font-semibold mb-3">2 · Same stack, two problems</h2>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-8">
+      <div class="card card-border bg-base-100">
+        <div class="card-body">
+          <h3 class="card-title text-base">AWS engineers <span class="badge badge-warning badge-sm">platform · cluster · silicon</span></h3>
+          <ul class="text-sm space-y-2 list-disc pl-5">
+            <li>Fleet economics: placement, quotas, spot across thousands of tenants</li>
+            <li>Elasticity: cold-starting containers, autoscaling</li>
+            <li>Isolation &amp; availability: noisy neighbors, fault domains, Service Level Agreements (SLAs)</li>
+            <li>Plumbing: billing, Identity and Access Management (IAM), observability</li>
+            <li>Unit of optimization: <strong>the datacenter</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card card-border bg-base-100">
+        <div class="card-body">
+          <h3 class="card-title text-base">SGLang <span class="badge badge-secondary badge-sm">serving runtime</span></h3>
+          <ul class="text-sm space-y-2 list-disc pl-5">
+            <li>RadixAttention: radix-tree KV cache, automatic prefix reuse</li>
+            <li>Continuous batching; prefill/decode disaggregation</li>
+            <li>Fast constrained decoding: JSON schema, regex, grammar</li>
+            <li>A Domain-Specific Language (DSL) for multi-call Large Language Model (LLM) programs</li>
+            <li>Unit of optimization: <strong>one GPU's memory bandwidth</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. So which one? A worked example -->
+    <h2 class="text-lg font-semibold mb-3">3 · So which one? A worked example</h2>
+
+    <p class="text-sm text-base-content/70 mb-3">One job: serve Llama-3.1-70B with a shared 10,000-token system prompt to 500 concurrent users.</p>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+      <div class="card card-border bg-base-100">
+        <div class="card-body">
+          <h3 class="card-title text-base">SGLang-style engineer <span class="badge badge-secondary badge-sm">serving runtime</span></h3>
+          <ul class="text-sm space-y-2 list-disc pl-5">
+            <li>Asks: how do we serve this cheaper and faster?</li>
+            <li>Makes all 500 requests reuse one shared prefix's KV cache (RadixAttention)</li>
+            <li>Tunes the prefill/decode split so time-to-first-token (TTFT) holds under load</li>
+            <li>Profiles kernels to find the memory-bandwidth bottleneck</li>
+            <li>Ships: <strong>+40% tokens/sec per GPU</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card card-border bg-base-100">
+        <div class="card-body">
+          <h3 class="card-title text-base">AWS-style engineer <span class="badge badge-warning badge-sm">platform</span></h3>
+          <ul class="text-sm space-y-2 list-disc pl-5">
+            <li>Asks: how do we deliver this to 500,000 users at 99.9% availability?</li>
+            <li>Places the model on healthy nodes; autoscales replicas on load</li>
+            <li>Isolates tenants, bills per token, survives a zone outage</li>
+            <li>Never touches a kernel</li>
+            <li>Ships: <strong>a managed service</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert bg-base-200 border border-base-content/10 text-sm mb-8">
+      <div>
+        <p>Complementary, not competing: you run SGLang <em>on</em> AWS. Bedrock's serving teams optimize kernels too — a 20% fleet-scale throughput gain is margin.</p>
+      </div>
+    </div>
+
+    <!-- 4. Appendix -->
+    <h2 class="text-lg font-semibold mb-3">4 · Appendix</h2>
+    <h3 class="text-base font-semibold mb-3">Q&amp;A <span class="text-sm font-normal text-base-content/50">(questions from the review so far)</span></h3>
+
+    <div class="space-y-3 mb-8">
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: What is the difference between Amazon Bedrock and SageMaker?</p>
+        <p class="text-sm mt-1"><strong>Bedrock — consume:</strong> call managed foundation models (Claude, Nova, Llama) through one API; per-token billing. <strong>SageMaker — build:</strong> full lifecycle for your own models: notebooks, training, inference endpoints. Bedrock = rent the model. SageMaker = rent the factory.</p>
+      </div>
+
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: Where does HyperPod fit?</p>
+        <p class="text-sm mt-1">Not the platform layer — it belongs in <strong>cluster &amp; systems</strong>. Managed GPU clusters (Slurm or Kubernetes) for distributed training: EFA networking, resumable, self-healing. You bring PyTorch/DeepSpeed; HyperPod keeps the cluster alive — a rented supercomputer, sold under the SageMaker umbrella.</p>
+      </div>
+
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: So HyperPod is below SGLang?</p>
+        <p class="text-sm mt-1">Yes — the vertical order is a dependency order: upper layers run on top of lower ones. HyperPod is the managed GPU fleet; SGLang serves on top of it. "Below" means foundation, not less important — and SGLang runs on any GPU cluster, HyperPod is just the managed-AWS option.</p>
+      </div>
+
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: What are Slurm and NCCL?</p>
+        <p class="text-sm mt-1"><strong>Slurm:</strong> the job scheduler — which job gets which GPUs, when. <strong>NCCL:</strong> NVIDIA's communication library — all-reduce group chat averaging gradients between GPUs.</p>
+      </div>
+
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: What are PyTorch and DeepSpeed?</p>
+        <p class="text-sm mt-1"><strong>PyTorch:</strong> Meta's framework — the language you define models in; it runs the math on GPUs. <strong>DeepSpeed:</strong> Microsoft's engine — ZeRO shards optimizer, gradients, weights across GPUs so big models fit. PyTorch defines the math; DeepSpeed, Slurm, NCCL distribute it.</p>
+      </div>
+
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: Why does Bedrock feel like OpenRouter or Perplexity?</p>
+        <p class="text-sm mt-1">Same shape — one API, many models — different layers of this diagram. <strong>OpenRouter:</strong> reseller router; models run at their original providers. <strong>Perplexity:</strong> consumer product; model tokens are a cost input (raw material, not product). <strong>Bedrock:</strong> models run on Amazon's fleet, inside your cloud account.</p>
+      </div>
+
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: Does Anthropic see my Bedrock data?</p>
+        <p class="text-sm mt-1">No — requests run on AWS machines; your contract is with Amazon. Anthropic licensed the weights — leased AWS the right to host Claude — and is paid for usage, not your data. That privacy is the enterprise sell: IAM, Virtual Private Cloud (VPC), CloudTrail.</p>
+      </div>
+
+      <div class="bg-base-200 border border-base-content/10 rounded-box p-4">
+        <p class="text-sm font-semibold">Q: Which layer is EC2 UltraServers?</p>
+        <p class="text-sm mt-1"><strong>Silicon &amp; hardware</strong> — a giant server of multiple Trainium-based P6 instances with an internal high-speed fabric. Boundary effect: it absorbs what used to be cross-node network traffic into one box.</p>
+      </div>
+    </div>
+
+    <h3 class="text-base font-semibold mb-3">Glossary <span class="text-sm font-normal text-base-content/50">(terms defined in this page)</span></h3>
+    <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-200">
+      <table class="table table-sm">
+        <tbody>
+          <tr><th class="whitespace-nowrap pr-4">Weights</th><td>The billions of learned numbers that make a trained model</td></tr>
+          <tr><th class="whitespace-nowrap pr-4">KV cache</th><td>Saved attention keys/values so repeated prefixes aren't recomputed</td></tr>
+          <tr><th class="whitespace-nowrap pr-4">All-reduce</th><td>The collective operation that averages gradients across GPUs</td></tr>
+          <tr><th class="whitespace-nowrap pr-4">ZeRO (Zero Redundancy Optimizer)</th><td>DeepSpeed's sharding scheme for optimizer state, gradients, weights</td></tr>
+          <tr><th class="whitespace-nowrap pr-4">Cost input</th><td>Raw material you pay for — the opposite of the product</td></tr>
+          <tr><th class="whitespace-nowrap pr-4">Prefill / decode</th><td>Generation's two phases: read the prompt, then emit tokens one by one</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+</body>
+</html>
