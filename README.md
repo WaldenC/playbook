@@ -9,6 +9,7 @@ Each skill is a self-contained markdown file that an agent reads as its operatin
 | Skill | Description |
 |---|---|
 | [slide-deck](skills/slide-deck/SKILL.md) | Build styled single-page HTML slide decks from 34 pre-built templates |
+| [human-review](skills/human-review/SKILL.md) | Browser review loop for HTML/Markdown — upstream: [petergyang/human-review](https://github.com/petergyang/human-review) |
 
 ## How it works
 
