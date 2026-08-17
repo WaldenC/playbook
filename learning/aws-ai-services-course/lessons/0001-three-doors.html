@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0001 — Three Doors, One Stack</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0001 · The map</p>
+    <h1>Three doors, one stack</h1>
+    <p class="lede">AWS sells the same AI machine at three zoom levels. Bedrock rents you the finished brain. SageMaker rents you the workshop. UltraServers rents you the factory floor.</p>
+  </header>
+
+  <h2>The stack, with pins</h2>
+  <p>You've drawn this stack before — five layers, from the apps at the top to the silicon at the bottom. AWS sells into three different rungs of it.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 640 400" role="img" aria-label="Five-layer AI stack with Bedrock pinned to Platform, SageMaker spanning Platform to Cluster and systems, and UltraServers pinned to Silicon and hardware" font-family="Georgia, 'Times New Roman', serif">
+      <!-- bars -->
+      <g>
+        <rect x="20" y="36" width="420" height="56" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="36" y="68" font-size="17" fill="#2B2620">Application</text>
+        <text x="36" y="84" font-size="12" fill="#6E675A">the apps — Rufus, your product</text>
+      </g>
+      <g>
+        <rect x="20" y="112" width="420" height="56" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="36" y="144" font-size="17" fill="#2B2620">Platform</text>
+        <text x="36" y="160" font-size="12" fill="#6E675A">the APIs you buy</text>
+      </g>
+      <g>
+        <rect x="20" y="188" width="420" height="56" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="36" y="220" font-size="17" fill="#2B2620">Serving runtime</text>
+        <text x="36" y="236" font-size="12" fill="#6E675A">engines — vLLM, SGLang, Mantle</text>
+      </g>
+      <g>
+        <rect x="20" y="264" width="420" height="56" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="36" y="296" font-size="17" fill="#2B2620">Cluster &amp; systems</text>
+        <text x="36" y="312" font-size="12" fill="#6E675A">HyperPod, UltraClusters</text>
+      </g>
+      <g>
+        <rect x="20" y="340" width="420" height="56" rx="8" fill="#FDEEE7" stroke="#E6DFCE"/>
+        <text x="36" y="372" font-size="17" fill="#2B2620">Silicon &amp; hardware</text>
+        <text x="36" y="388" font-size="12" fill="#6E675A">Trainium chips and racks</text>
+      </g>
+      <!-- connectors -->
+      <line x1="440" y1="140" x2="474" y2="140" stroke="#D94F30" stroke-width="2"/>
+      <line x1="440" y1="140" x2="440" y2="292" stroke="#B03E24" stroke-width="2"/>
+      <line x1="440" y1="292" x2="474" y2="292" stroke="#B03E24" stroke-width="2"/>
+      <line x1="440" y1="215" x2="474" y2="215" stroke="#B03E24" stroke-width="2"/>
+      <line x1="440" y1="368" x2="474" y2="368" stroke="#D94F30" stroke-width="2"/>
+      <!-- pills -->
+      <rect x="474" y="123" width="146" height="34" rx="17" fill="#D94F30"/>
+      <text x="547" y="145" font-size="15" fill="#FDFBF4" text-anchor="middle">Bedrock</text>
+      <rect x="474" y="198" width="146" height="34" rx="17" fill="#B03E24"/>
+      <text x="547" y="220" font-size="15" fill="#FDFBF4" text-anchor="middle">SageMaker AI</text>
+      <rect x="474" y="351" width="146" height="34" rx="17" fill="#D94F30"/>
+      <text x="547" y="373" font-size="15" fill="#FDFBF4" text-anchor="middle">UltraServers</text>
+    </svg>
+    <figcaption class="figcap">Bedrock pins to the Platform layer. SageMaker spans Platform down into Cluster &amp; systems — that's where HyperPod lives. UltraServers pins to Silicon &amp; hardware.</figcaption>
+  </figure>
+
+  <h2>The rent ladder</h2>
+  <p>What you buy at each door, from least to most control.</p>
+
+  <div class="card">
+    <h4>Taxi — Bedrock</h4>
+    <p>You buy finished models by the token; AWS picks the machine, the engine, and the driver. Start in minutes. You control almost nothing below the API.</p>
+  </div>
+  <div class="card">
+    <h4>Garage — SageMaker AI</h4>
+    <p>You buy compute hours and tooling: bring your own containers, scripts, and data; AWS runs the fleet and heals broken machines. Train, deploy, monitor — the full lifecycle, your way.</p>
+  </div>
+  <div class="card">
+    <h4>Factory floor — UltraServers</h4>
+    <p>You buy a whole rack as one EC2 instance — 64 or 144 Trainium chips fused into a single machine. You run your own stack end to end; AWS keeps the lights on. Total control, and every problem below the roof is yours.</p>
+  </div>
+
+  <div class="callout">
+    <p>The three doors nest. Bedrock's models run on Trainium UltraServers, and SageMaker rents the same racks. Different customers stand at different doors of the same building.</p>
+  </div>
+
+  <h2>Same job, different verbs</h2>
+  <p>The two APIs show the split in one glance.</p>
+
+  <figure class="fig">
+    <pre><code>{
+  "modelId": "us.anthropic.claude-sonnet-5",
+  "messages": [{ "role": "user",
+    "content": [{ "text": "Summarize this invoice" }] }]
+}</code></pre>
+    <figcaption class="figcap">Bedrock: "run this prompt on Claude — AWS picks the machine."</figcaption>
+  </figure>
+
+  <figure class="fig">
+    <pre><code>{
+  "TrainingJobName": "my-fine-tune",
+  "AlgorithmSpecification": { "TrainingImage": "my-docker-image" },
+  "ResourceConfig": {
+    "InstanceType": "ml.p5.48xlarge",
+    "InstanceCount": 8, "VolumeSizeInGB": 512 },
+  "EnableManagedSpotTraining": true
+}</code></pre>
+    <figcaption class="figcap">SageMaker: "run MY image on 8 machines of this exact type — I pick the machine."</figcaption>
+  </figure>
+  <p class="cite">Shapes, not working payloads — modeled on Bedrock's Converse API and SageMaker's CreateTrainingJob.</p>
+
+  <h2>The one-breath rule</h2>
+  <ul>
+    <li>Want a model that already exists? <strong>Bedrock.</strong></li>
+    <li>Want to build or own your model? <strong>SageMaker AI.</strong></li>
+    <li>Want to build the machine models run on? <strong>UltraServers.</strong></li>
+  </ul>
+
+  <div class="callout">
+    <p>Gray zone: fine-tuning lives in both Bedrock and SageMaker. Tweak a hosted model with a knob or two → Bedrock. Train seriously — data, hyperparameters, hardware choices → SageMaker.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">Which door?</p>
+
+    <div class="q-block">
+      <p class="q-text">A bank wants Claude behind their app, no infra team, pay per token. Which door?</p>
+      <button class="q-option" data-correct="true">Bedrock: rent the model, pay per token</button>
+      <button class="q-option">SageMaker: host the model, pay per hour</button>
+      <button class="q-option">UltraServers: buy the racks, run them all</button>
+      <p class="q-explain">Bedrock is the taxi — pay per token, someone else drives. The garage is overkill if you never touch training or containers, and the factory floor is for people who build the platform, not people who call it.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">An ML team fine-tunes Llama with full control of the script and the hardware. Which door?</p>
+      <button class="q-option">Bedrock: tweak a hosted model by API</button>
+      <button class="q-option" data-correct="true">SageMaker: train your model on chosen hardware</button>
+      <button class="q-option">UltraServers: write kernels for your chips</button>
+      <p class="q-explain">Full control of the training script and the instance type is the garage — SageMaker Training. Bedrock's customization gives you knobs, not the engine room. UltraServers only makes sense when you're building the platform itself.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">A lab needs thousands of chips wired as one machine to train a frontier model. Which product?</p>
+      <button class="q-option" data-correct="true">EC2 UltraServers, booked as reserved capacity</button>
+      <button class="q-option">SageMaker HyperPod with a training plan</button>
+      <button class="q-option">Bedrock batch mode with provisioned throughput</button>
+      <p class="q-explain">A whole rack fused into one instance is exactly an UltraServer. HyperPod manages clusters of machines but doesn't change what the machines are, and Bedrock batch mode changes billing, not the machine.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> AWS's own decision guide, <a href="https://docs.aws.amazon.com/decision-guides/latest/bedrock-or-sagemaker/bedrock-or-sagemaker.pdf">"Bedrock or SageMaker?" (PDF)</a>. Skim the opening pages — it's this same rent ladder, drawn by the people who sell both.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/bedrock.html">Bedrock cheat sheet</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "why does Bedrock count as Platform and not Serving runtime?", "when would a team pick UltraServers over SageMaker?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <span class="spacer"></span>
+    <a href="0002-bedrock-catalog.html">0002 — What Bedrock sells →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

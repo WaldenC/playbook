@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UltraServers Cheat Sheet — AWS AI Services</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="ref">
+  <p class="eyebrow">Reference · AWS AI Services</p>
+  <h1>UltraServers cheat sheet</h1>
+  <p class="print-hint">Prints cleanly. Facts as of Aug 2026 — pricing moves fast, re-check before quoting.</p>
+
+  <h2>What it is</h2>
+  <p>An EC2 instance that is an entire rack: multiple physical servers fused into one virtual machine full of Trainium chips, so 64–144 chips act as one accelerator. Announced Dec 3, 2024 (Trn2). The product you rent with one API call and one bill.</p>
+
+  <h2>Trn2 vs Trn3</h2>
+  <table>
+    <tr><th></th><th>Trn2 UltraServer (announced Dec 3, 2024)</th><th>Trn3 UltraServer (GA Dec 2, 2025)</th></tr>
+    <tr><td>Chips</td><td>64 × Trainium2 (8 NeuronCores, 96 GiB HBM each)</td><td>144 × Trainium3 (AWS's first 3 nm chip)</td></tr>
+    <tr><td>Compute</td><td>83.2 peak PFLOPs FP8</td><td>362 PFLOPs FP8 — up to 4.4x Trn2</td></tr>
+    <tr><td>Memory</td><td>~6 TB HBM</td><td>20.7 TB HBM3e, 706 TB/s bandwidth</td></tr>
+    <tr><td>vCPUs</td><td>768</td><td>—</td></tr>
+    <tr><td>Networking</td><td>12.8 Tbps EFA</td><td>NeuronSwitch-v1 fabric, sub-10 µs chip-to-chip</td></tr>
+    <tr><td>Power</td><td>~35–40 kW</td><td>~4x performance per watt; 5x tokens per megawatt</td></tr>
+  </table>
+  <p>Trn2 UltraServers stayed in preview while AWS leapfrogged straight to Trn3 GA.</p>
+  <p class="cite"><a href="https://aws.amazon.com/ec2/ultraservers/">product page</a> · <a href="https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-ec2-trn3-ultraservers/">Trn3 GA</a> · <a href="https://awsdocs-neuron.readthedocs-hosted.com/en/v2.31.0/about-neuron/arch/neuron-hardware/trn2-arch.html">Neuron docs</a></p>
+
+  <h2>Two interconnects</h2>
+  <ul>
+    <li><strong>NeuronLink</strong> — scale-up, inside the box: Trn2 does 1,024 GB/s per chip intra-server, 256 GB/s inter-server; Trn3 uses the NeuronSwitch-v1 fabric. Veins inside the body.</li>
+    <li><strong>EFA (Elastic Fabric Adapter)</strong> — scale-out, box to box across the cluster. Highways between cities.</li>
+    <li><strong>UltraClusters</strong> wire tens of thousands of UltraServers into a petabit-scale nonblocking network; 3rd-gen clusters reportedly scale to ~1M chips.</li>
+  </ul>
+
+  <h2>Software: no CUDA</h2>
+  <ul>
+    <li>The <strong>Neuron SDK</strong> replaces NVIDIA's stack: a compiler mapping PyTorch/JAX graphs to Trainium's instruction set, <strong>NeuronX Distributed</strong> (tensor/pipeline/data/sequence/context parallelism), <strong>NKI</strong> (Python DSL for custom kernels).</li>
+    <li>vLLM, Hugging Face TGI, DeepSpeed, and JAX run on top.</li>
+    <li>Flag example: <code>NEURON_CC_FLAGS="--target=trn2 --lnc=2"</code> — compile for this silicon generation, use 2 link cores for chip-to-chip traffic.</li>
+  </ul>
+
+  <h2>Who rents it</h2>
+  <ul>
+    <li>Anthropic — Project Rainier: ~500K Trainium2 chips online Oct 29, 2025, scaling past 1M. Mostly serves <strong>inference</strong>; training runs in the evenings when inference load drops.</li>
+    <li>OpenAI — 7-year $38B AWS deal (Nov 2025) including Trn2 UltraServers.</li>
+    <li>Apple (reported multi-year Trainium2 commitment), Databricks, Hugging Face.</li>
+    <li>Claude on Bedrock runs on Trainium — you may already be using one.</li>
+  </ul>
+  <p class="cite"><a href="https://www.aboutamazon.com/news/aws/aws-project-rainier-ai-trainium-chips-compute-cluster">Rainier</a> · <a href="https://www.datacenterdynamics.com/en/news/aws-activates-project-rainier-cluster-of-nearly-500000-trainium2-chips/">DCD confirmation</a></p>
+
+  <h2>The pricing anomaly</h2>
+  <p>Third-party trackers: trn2.48xlarge ~$4.80/hr on-demand but <strong>spot ~$8.60–8.72/hr</strong> — spot ABOVE on-demand. Trainium is scarce: capacity is allocation-controlled via Capacity Blocks (1–64 instances, up to 6 months) and multi-year private agreements, so the leftover spot market inverts. <span class="cite"><a href="https://aiwiki.ai/wiki/aws_trainium2">tracker</a> · <a href="https://aws.amazon.com/ec2/capacityblocks/">Capacity Blocks</a></span></p>
+
+  <h2>Fault tolerance (nodes die, a lot)</h2>
+  <ul>
+    <li>At 100K-chip scale, node failures are daily. Meta: a GPU failure roughly every 3 hours during LLaMA training.</li>
+    <li>NDTL (Neuron Distributed Training Library) checkpointing raised measured cluster uptime 77.8% → 98.8%.</li>
+    <li>Tiered checkpoints: fast local NVMe ~every 5 min, durable S3 every hour.</li>
+    <li><strong>Checkpointless</strong> training replicates state peer-to-peer: recovery in minutes instead of up to an hour.</li>
+  </ul>
+  <p class="cite"><a href="https://www.emergentmind.com/topics/aws-trainium2">Trainium2 paper summary</a></p>
+
+  <h2>What UltraServer SDEs fight daily</h2>
+  <ul>
+    <li>Node failures and fast resume (checkpoint tiers, peer-to-peer state).</li>
+    <li>Collectives: all-reduce over the chip mesh — hierarchical, reduce within the 64-chip node first, then across nodes over EFA (~1–2 µs per-hop latency on NeuronLink).</li>
+    <li>Compiler engineering: operator fusion, memory planning (HBM vs on-chip scratchpad), quantization, compile caches so customers don't recompile per boot.</li>
+    <li>Power and cooling: ~35–40 kW per box; a planned Indiana campus is &gt;2.2 GW. The metric of record shifted from FLOPs to tokens-per-megawatt.</li>
+    <li>Model bring-up: every new architecture (GPT-OSS, DeepSeek-R1 distills, Qwen3) needs optimization passes; GPT-OSS-120B hits 3x throughput per chip on Trn3 (AWS claim).</li>
+  </ul>
+
+  <p class="cite">Related: <a href="bedrock.html">Bedrock cheat sheet</a> · <a href="sagemaker.html">SageMaker cheat sheet</a> · <a href="glossary.html">glossary</a></p>
+</article>
+</body>
+</html>

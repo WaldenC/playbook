@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0002 — What Bedrock Sells</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0002 · The catalog</p>
+    <h1>What Bedrock sells</h1>
+    <p class="lede">The taxi has one meter but many fares. Bedrock is a catalog of about 200 models behind a single API: pay per token, swap models without rewiring, and your data never trains the grid.</p>
+  </header>
+
+  <h2>One API, about 200 models</h2>
+  <p>Open the Bedrock door and the first thing on the shelf is a catalog: about 200 models behind one Converse or InvokeModel API. Anthropic Claude (Opus and Sonnet), Meta Llama (Llama 4 Scout reads a 10-million-token context), Mistral, DeepSeek, Qwen3, and Cohere all sit there, and since June 2026 OpenAI's Generative Pre-trained Transformer (GPT) models are generally available (GA) too, served from the internal <code>bedrock-mantle</code> endpoint. The old assumption that Bedrock has no OpenAI is dead.</p>
+  <p>Then there is Amazon Nova, the first-party family: Micro, Lite, Pro, and Premier, with Nova 2 Lite, Pro, Sonic, and Omni landing at re:Invent 2025. Nova runs on Trainium, AWS's own silicon — the same chips the factory-floor door rents out. At the far end of the shelf, Titan is legacy; it is not why you pick Bedrock anymore.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 640 280" role="img" aria-label="Your app calls one Bedrock API socket, which fans out to six model families: Claude, Nova, Llama, GPT, Qwen, and Mistral" font-family="Georgia, 'Times New Roman', serif">
+      <!-- app -->
+      <rect x="20" y="108" width="110" height="64" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="75" y="145" font-size="15" fill="#2B2620" text-anchor="middle">your app</text>
+      <!-- arrow -->
+      <line x1="130" y1="140" x2="196" y2="140" stroke="#B03E24" stroke-width="2"/>
+      <polygon points="190,133 200,140 190,147" fill="#B03E24"/>
+      <!-- api socket -->
+      <rect x="200" y="108" width="150" height="64" rx="8" fill="#FDEEE7" stroke="#D94F30"/>
+      <text x="275" y="134" font-size="15" fill="#2B2620" text-anchor="middle">Bedrock API</text>
+      <text x="275" y="154" font-size="11" fill="#6E675A" text-anchor="middle">Converse / InvokeModel</text>
+      <!-- bus -->
+      <line x1="352" y1="140" x2="412" y2="140" stroke="#D94F30" stroke-width="2"/>
+      <line x1="412" y1="61" x2="412" y2="221" stroke="#D94F30" stroke-width="2"/>
+      <line x1="412" y1="61" x2="430" y2="61" stroke="#D94F30" stroke-width="1.5"/>
+      <line x1="412" y1="141" x2="430" y2="141" stroke="#D94F30" stroke-width="1.5"/>
+      <line x1="412" y1="221" x2="430" y2="221" stroke="#D94F30" stroke-width="1.5"/>
+      <!-- chips, row 1 -->
+      <rect x="430" y="40" width="95" height="42" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="477" y="66" font-size="14" fill="#2B2620" text-anchor="middle">Claude</text>
+      <rect x="535" y="40" width="95" height="42" rx="8" fill="#FDEEE7" stroke="#D94F30"/>
+      <text x="582" y="66" font-size="14" fill="#2B2620" text-anchor="middle">Nova</text>
+      <text x="582" y="98" font-size="11" fill="#6E675A" text-anchor="middle">first-party · Trainium</text>
+      <!-- chips, row 2 -->
+      <rect x="430" y="120" width="95" height="42" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="477" y="146" font-size="14" fill="#2B2620" text-anchor="middle">Llama</text>
+      <rect x="535" y="120" width="95" height="42" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="582" y="146" font-size="14" fill="#2B2620" text-anchor="middle">GPT</text>
+      <!-- chips, row 3 -->
+      <rect x="430" y="200" width="95" height="42" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="477" y="226" font-size="14" fill="#2B2620" text-anchor="middle">Qwen</text>
+      <rect x="535" y="200" width="95" height="42" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="582" y="226" font-size="14" fill="#2B2620" text-anchor="middle">Mistral</text>
+    </svg>
+    <figcaption class="figcap">One socket, many chips — the API stays fixed while the catalog rotates underneath it.</figcaption>
+  </figure>
+
+  <p class="cite">Catalog facts: <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-anthropic.html">AWS Bedrock model cards</a> and the <a href="https://aws.amazon.com/blogs/machine-learning/openai-models-and-codex-on-amazon-bedrock-are-now-generally-available/">OpenAI models GA announcement</a>.</p>
+
+  <h2>Pay per token</h2>
+  <p>The meter reads tokens. Every call pays an input price and an output price, and output typically runs 4–10x input — generation is the expensive half of a call. Batch mode is the volume discount: roughly 50% off when you can wait for answers to come back later.</p>
+  <p>The surprising bit is what Bedrock does not charge. Claude on Bedrock costs the same as Claude on Anthropic's own API, and GPT on Bedrock matches OpenAI's first-party pricing: no markup.</p>
+  <p class="cite">Pricing model: <a href="https://docs.aws.amazon.com/decision-guides/latest/bedrock-or-sagemaker/bedrock-or-sagemaker.pdf">AWS's "Bedrock or SageMaker?" decision guide (PDF)</a> — the rent ladder from the seller's side.</p>
+
+  <h2>Your data never trains the grid</h2>
+  <p>The privacy guarantee is contractual, not a vibe: prompts and responses are never used to train models, never shared with the model providers, and not retained by default. When a customer's legal team asks whether Anthropic can see their prompts, the answer is no.</p>
+
+  <h2>Scale</h2>
+  <p>The grid's size, from AWS earnings calls: more than 125,000 customers, about 80% of the Fortune 100, and a multibillion-dollar annualized run rate. AWS says more tokens were processed in Q1 2026 than in all prior years combined.</p>
+  <p class="cite">Scale claims: <a href="https://aboutamazon.com/news/company-news/amazon-ceo-andy-jassy-aws-ai-q1-2026-earnings">AWS AI earnings-call coverage, Q1 2026</a>.</p>
+
+  <h2>Why one API matters</h2>
+  <p>Two hundred models behind one API is a strategy, not a convenience. Swap Claude for Llama or Nova by changing one <code>modelId</code> field — no new SDK, no new plumbing, nothing else to rewire.</p>
+  <p>Version IDs make the swap safe. A model-version ID pins your calls to one specific model, so when Bedrock rotates in a newer Sonnet the catalog moves and your callers keep talking to the version they were tested against. You migrate on your own schedule.</p>
+
+  <div class="callout">
+    <p>Behind that socket is a serving machine — routers, guardrails, caches, and chips running a multi-tenant engine. Next lesson: what happens inside one Bedrock request.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">What did you catch?</p>
+
+    <div class="q-block">
+      <p class="q-text">Which model family is first-party — built and served by AWS?</p>
+      <button class="q-option" data-correct="true">Amazon Nova — AWS's own family, runs on Trainium</button>
+      <button class="q-option">Meta Llama — the open-weight family, runs on anything</button>
+      <button class="q-option">Anthropic Claude — the third-party, front of the pack</button>
+      <p class="q-explain">Nova is AWS's own family, running on Trainium silicon — the first-party story behind the catalog. Llama is Meta's open-weight line and Claude is Anthropic's flagship; Bedrock hosts them, it does not own them.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Why does a Bedrock call charge more per output token than per input token?</p>
+      <button class="q-option" data-correct="true">Four to ten times more per output token</button>
+      <button class="q-option">About the same price, within a small margin</button>
+      <button class="q-option">Input tokens cost more than the output tokens</button>
+      <p class="q-explain">Output typically runs 4–10x the input price — generation is the expensive half of a call. And if you can wait, batch mode runs the same work at roughly 50% off.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">A customer's legal team asks: does Anthropic see the prompts sent to Claude on Bedrock?</p>
+      <button class="q-option" data-correct="true">No — prompts are never shared with providers</button>
+      <button class="q-option">Yes — model makers train on your traffic</button>
+      <button class="q-option">Sometimes — only when you opt into sharing</button>
+      <p class="q-explain">No. Prompts and responses are never used to train models, never shared with model providers, and not retained by default. The provider gets the billing for the call, not its payload.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Which statement about OpenAI on Bedrock is true?</p>
+      <button class="q-option" data-correct="true">OpenAI went GA in June 2026, served by Mantle</button>
+      <button class="q-option">OpenAI is absent from Bedrock — use direct APIs</button>
+      <button class="q-option">OpenAI is priced at a premium with a markup</button>
+      <p class="q-explain">The June 2026 GA ended the old assumption: GPT runs on the same internal engine as the rest of the catalog — the bedrock-mantle endpoint — priced at parity with OpenAI's own API.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> the official inventory, <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-anthropic.html">AWS Bedrock model cards</a>. Scroll the list — every family, every version ID, every context window, exactly as the catalog page in this lesson is drawn.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/bedrock.html">Bedrock cheat sheet</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "how do model-version IDs pin callers?", "what does batch mode change about a request?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0001-three-doors.html">← 0001 — Three doors, one stack</a>
+    <span class="spacer"></span>
+    <a href="0003-bedrock-prompt-journey.html">0003 — Inside a request →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

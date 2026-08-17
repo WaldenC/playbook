@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary — AWS AI Services</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="ref">
+  <p class="eyebrow">Reference · AWS AI Services</p>
+  <h1>Glossary</h1>
+  <p class="print-hint">Prints cleanly — keep it next to the lessons. Terms are defined the way the lessons use them.</p>
+
+  <h2>Inference mechanics</h2>
+  <dl>
+    <dt>Time-to-first-token (TTFT)</dt>
+    <dd>Latency from request to the first output token. What a user feels as "the model is thinking."</dd>
+    <dt>Tokens per second</dt>
+    <dd>Speed of output once the first token has arrived. What a user feels as "reading speed."</dd>
+    <dt>Prefill</dt>
+    <dd>Phase one of inference: the model reads the whole prompt and produces the first token. Latency grows with prompt length.</dd>
+    <dt>Decode</dt>
+    <dd>Phase two: the model produces tokens one at a time. Speed is bounded by memory bandwidth.</dd>
+    <dt>KV cache</dt>
+    <dd>Key-value cache: computed attention state kept per prompt so repeated tokens don't get recomputed. Big for long conversations.</dd>
+    <dt>Prompt caching / cachePoint</dt>
+    <dd>Marking a stable prefix (like a system prompt) so later calls reuse its computed state instead of re-prefilling. A cache read costs less than a write.</dd>
+    <dt>Continuous batching</dt>
+    <dd>Serving many requests on one accelerator at once, adding new requests as old ones finish — the standard utilization trick.</dd>
+    <dt>Latency-optimized inference</dt>
+    <dd>Bedrock per-request flag that routes to a faster serving path, typically at higher per-token cost.</dd>
+  </dl>
+
+  <h2>SageMaker mechanics</h2>
+  <dl>
+    <dt>Cold start</dt>
+    <dd>The delay when no warm copy of a model is ready: boot a container, pull the image, load weights, then serve.</dd>
+    <dt>Provisioned concurrency</dt>
+    <dd>Paying to keep warm copies of a serverless endpoint so requests skip the cold start.</dd>
+    <dt>Direct memory access (DMA)</dt>
+    <dd>Copying data straight from storage to GPU memory without the CPU or disk in between. How Fast Model Loader streams weights.</dd>
+    <dt>Inference component</dt>
+    <dd>SageMaker's unit for hosting one model: many components can share one GPU instance, each with its own autoscaling.</dd>
+    <dt>Model pinning</dt>
+    <dd>Keeping N warm copies of a model to absorb bursts without cold starts.</dd>
+    <dt>Managed Spot Training</dt>
+    <dd>Training on discount machines AWS may reclaim with ~2 minutes' notice; the platform checkpoints and resumes for you.</dd>
+    <dt>Checkpoint</dt>
+    <dd>A saved snapshot of training state (weights, optimizer, step) that lets a job resume after interruption instead of restarting.</dd>
+    <dt>Checkpointless training</dt>
+    <dd>Replicating model state peer-to-peer across nodes so a dead node's replacement gets state from neighbors — recovery in minutes.</dd>
+    <dt>Elastic training</dt>
+    <dd>Growing a running training job onto extra capacity mid-run while preserving the global batch size.</dd>
+    <dt>Deep learning container (DLC)</dt>
+    <dd>AWS-maintained container images preloaded with frameworks like vLLM or SGLang.</dd>
+    <dt>Bring your own container (BYOC)</dt>
+    <dd>Running your own container image on SageMaker instead of a stock one.</dd>
+  </dl>
+
+  <h2>UltraServers & silicon</h2>
+  <dl>
+    <dt>Trainium</dt>
+    <dd>AWS's own AI accelerator chip (announced 2023; Trainium2 in 2024, Trainium3 in 2025). No CUDA — it has its own instruction set.</dd>
+    <dt>Inferentia</dt>
+    <dd>AWS's earlier, inference-focused accelerator family.</dd>
+    <dt>UltraServer</dt>
+    <dd>An EC2 instance type that fuses multiple physical servers into one: 64 (Trn2) or 144 (Trn3) Trainium chips acting as one accelerator.</dd>
+    <dt>NeuronCore</dt>
+    <dd>The compute unit inside a Trainium chip. A Trainium2 chip has 8.</dd>
+    <dt>NeuronLink</dt>
+    <dd>Scale-up interconnect joining chips inside the UltraServer (Trn3 uses the NeuronSwitch-v1 fabric).</dd>
+    <dt>Elastic Fabric Adapter (EFA)</dt>
+    <dd>Scale-out network between UltraServers across the cluster.</dd>
+    <dt>UltraCluster</dt>
+    <dd>Networks of tens of thousands of UltraServers joined into one supercomputer.</dd>
+    <dt>Neuron SDK</dt>
+    <dd>The software stack replacing NVIDIA's: compiler (PyTorch/JAX graphs → Trainium instructions), NeuronX Distributed libraries, NKI.</dd>
+    <dt>Neuron Kernel Interface (NKI)</dt>
+    <dd>A Python DSL for writing custom compute kernels for Trainium — the escape hatch when the compiler isn't fast enough.</dd>
+    <dt>Collective / all-reduce</dt>
+    <dd>Patterns for summing or sharing data across chips (gradients in training). Latency per hop matters at rack scale.</dd>
+    <dt>High-bandwidth memory (HBM)</dt>
+    <dd>Fast memory stacked directly on the chip package. Trn2 UltraServer: ~6 TB; Trn3: 20.7 TB of HBM3e.</dd>
+    <dt>PFLOPs (petaflops)</dt>
+    <dd>10<sup>15</sup> floating-point operations per second. Trn2 UltraServer: 83.2 PFLOPs at FP8.</dd>
+    <dt>FP8</dt>
+    <dd>8-bit floating-point number format — the precision most modern training and inference peak numbers are quoted in.</dd>
+    <dt>Capacity Block</dt>
+    <dd>A reserved slice of EC2 capacity (1–64 instances, up to 6 months) so your job doesn't wait on the spot market.</dd>
+  </dl>
+
+  <h2>Bedrock & platform</h2>
+  <dl>
+    <dt>Retrieval-augmented generation (RAG)</dt>
+    <dd>Fetching relevant documents at query time and handing them to the model, so answers are grounded in your data.</dd>
+    <dt>GraphRAG</dt>
+    <dd>RAG over a knowledge graph — good for multi-hop questions where relationships between entities matter.</dd>
+    <dt>Guardrail</dt>
+    <dd>A policy check in the request path (content filters, topics, PII, image filters) — input side, output side, or both.</dd>
+    <dt>AgentCore</dt>
+    <dd>Bedrock's managed runtime for AI agents: memory, gateways, identity, observability, code interpreter, browser, evaluations.</dd>
+    <dt>Cross-region inference profile</dt>
+    <dd>One endpoint that can serve from multiple AWS regions, absorbing local capacity spikes at the cost of network latency.</dd>
+    <dt>Intelligent prompt routing</dt>
+    <dd>Sending each request to the smallest model that can handle it (Rufus does this at Amazon scale).</dd>
+    <dt>Mantle</dt>
+    <dd>AWS's internal name for Bedrock's inference engine (appears in job postings; OpenAI-on-Bedrock serves from a bedrock-mantle endpoint).</dd>
+    <dt>Batch inference</dt>
+    <dd>Cheaper, non-interactive inference for deferrable workloads — roughly half price.</dd>
+  </dl>
+
+  <h2>Ops & economics</h2>
+  <dl>
+    <dt>Spot instance</dt>
+    <dd>Spare capacity sold at a discount, reclaimable on short notice. On Trainium, spot can cost MORE than on-demand — scarcity inverts the market.</dd>
+    <dt>Autoscaling</dt>
+    <dd>Growing or shrinking a fleet automatically from load signals — with cooldowns so it doesn't oscillate.</dd>
+    <dt>p95 latency</dt>
+    <dd>The latency that 95% of requests beat — the percentile people actually alarm on, because the mean hides tail pain.</dd>
+    <dt>Error budget</dt>
+    <dd>How much failure a service is allowed in a window (1 − SLO). Teams spend it deliberately.</dd>
+    <dt>Tokens per megawatt</dt>
+    <dd>Efficiency metric: tokens served per unit of power. The metric of record once data centers are power-limited.</dd>
+    <dt>Virtual Private Cloud (VPC)</dt>
+    <dd>Your private slice of AWS networking; PrivateLink connects services over it instead of the public internet.</dd>
+  </dl>
+</article>
+</body>
+</html>

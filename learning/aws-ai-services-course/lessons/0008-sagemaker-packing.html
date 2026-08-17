@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0008 — One GPU, Many Tenants</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0008 · Packing</p>
+    <h1>One GPU, many tenants</h1>
+    <p class="lede">A GPU that's 20% busy still bills 100%. Inference components are how SageMaker slices one instance across several models — and the platform sells you the utilization back.</p>
+  </header>
+
+  <h2>The idle GPU is the expensive GPU</h2>
+  <p>A dedicated endpoint per model is the naive default, and it bleeds money. Inference traffic is bursty — the lunch hour spikes, the midnight quiet — so a whole instance reserved for one small model sits mostly empty, billing the full rate either way.</p>
+  <p>The fix is packing: slice the instance, not the bill. An inference component is one model's slice of a GPU instance — its own container, its own GPU allotment, its own autoscaling policy.</p>
+
+  <h2>One g5.12xlarge, two tenants</h2>
+  <p>Here's the canonical shape: on a single g5.12xlarge, Stable Diffusion gets 1 GPU and Llama 2 gets 2. Each component autoscales independently — Llama can spin up copies while Stable Diffusion sleeps, and each only pays for its own slot.</p>
+  <p>Model pinning keeps N warm copies of a component standing by, so a surge never falls into the cold-start trap from lesson 0006. Least-connections routing hands each request to the warm copy with the fewest outstanding calls — load spreads by current pressure, not round-robin luck.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 640 300" role="img" aria-label="One g5.12xlarge instance split into two inference components: Stable Diffusion on 1 GPU and Llama 2 on 2 GPUs, each with its own traffic arrow, warm copies, and autoscaling" font-family="Georgia, 'Times New Roman', serif">
+      <defs>
+        <marker id="arrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#D94F30"/>
+        </marker>
+      </defs>
+      <!-- incoming traffic -->
+      <line x1="220" y1="16" x2="220" y2="114" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="232" y="66" font-size="12" fill="#6E675A">image requests</text>
+      <line x1="420" y1="16" x2="420" y2="114" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="432" y="66" font-size="12" fill="#6E675A">text requests</text>
+      <!-- the instance -->
+      <rect x="110" y="70" width="420" height="200" rx="10" fill="#F7F3E8" stroke="#E6DFCE" stroke-width="1.5"/>
+      <text x="320" y="96" font-size="15" fill="#2B2620" text-anchor="middle" font-weight="600">one g5.12xlarge instance</text>
+      <!-- Stable Diffusion component -->
+      <rect x="140" y="120" width="160" height="130" rx="8" fill="#FDEEE7" stroke="#D94F30" stroke-width="1.5"/>
+      <text x="220" y="150" font-size="15" fill="#2B2620" text-anchor="middle">Stable Diffusion</text>
+      <text x="220" y="172" font-size="12" fill="#6E675A" text-anchor="middle">1 GPU · pinned · N warm</text>
+      <text x="220" y="192" font-size="12" fill="#6E675A" text-anchor="middle">autoscales on its own traffic</text>
+      <!-- spare capacity -->
+      <rect x="308" y="140" width="24" height="90" rx="6" fill="none" stroke="#6E675A" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="320" y="192" font-size="18" fill="#6E675A" text-anchor="middle">+</text>
+      <!-- Llama 2 component -->
+      <rect x="340" y="120" width="160" height="130" rx="8" fill="#FDFBF4" stroke="#B03E24" stroke-width="1.5"/>
+      <text x="420" y="150" font-size="15" fill="#2B2620" text-anchor="middle">Llama 2</text>
+      <text x="420" y="172" font-size="12" fill="#6E675A" text-anchor="middle">2 GPUs · pinned · N warm</text>
+      <text x="420" y="192" font-size="12" fill="#6E675A" text-anchor="middle">autoscales on its own traffic</text>
+      <!-- router note -->
+      <text x="320" y="258" font-size="12" fill="#6E675A" text-anchor="middle">least-connections routing picks the least-loaded warm copy per request</text>
+    </svg>
+    <figcaption class="figcap">One g5.12xlarge, two inference components. Each model owns its GPU slice, pins N warm copies, and autoscales on its own traffic; a router hands each request to the least-loaded warm copy. The dashed slot is spare capacity, claimable by the next model.</figcaption>
+  </figure>
+
+  <h2>The KV-cache bonus</h2>
+  <p>The next trick sits inside the serving engine, and it landed on HyperPod in November 2025. A key-value (KV) cache stores the conversation's earlier tokens so they aren't recomputed; a tiered KV cache spreads those tensors across fast and slow tiers, and intelligent routing steers each request to a copy whose cache already covers most of its context.</p>
+  <p>The reported numbers: up to 40% latency reduction and a 25% throughput gain; for Llama-3.1-70B, the median (P50) time to first token (TTFT) drops 72% at 8k context and 94% at 64k. Longer contexts mean heavier caches, so the win grows with them.</p>
+  <p class="cite">Packing facts in this lesson — inference components, pinning, least-connections routing, and the Nov 2025 KV-cache numbers — trace to <a href="https://aihub.hkuspace.hku.hk/2025/11/27/managed-tiered-kv-cache-and-intelligent-routing-for-amazon-sagemaker-hyperpod/">AWS ML blog: managed tiered KV cache and intelligent routing for SageMaker HyperPod</a>.</p>
+
+  <h2>Repacking without breaking traffic</h2>
+  <p>Changing a component — a new model version, a new GPU split — is a deployment, not a restart. SageMaker rolls the update across copies with four strategies: all-at-once, canary, linear, or blue-green, and you can pin capacity percentages per component while it updates.</p>
+  <p>Canary shifts a few percent of traffic first and watches; blue-green builds a fully warmed replacement and flips, rolling back if it misbehaves. The pinned warm copies are what make those flips cheap.</p>
+  <p class="cite">Rolling-update strategies and per-component capacity percentages: <a href="https://aihub.hkuspace.hku.hk/2025/11/27/managed-tiered-kv-cache-and-intelligent-routing-for-amazon-sagemaker-hyperpod/">the same post's update guidance</a>.</p>
+
+  <div class="callout">
+    <p>The whole game is utilization. The same g5.12xlarge can sit at 20% or 80% busy — the GPU bills identically either way. Packing is that difference, and what SageMaker sells you is exactly it: a slot that always has a tenant.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">Utilization or latency?</p>
+
+    <div class="q-block">
+      <p class="q-text">Two small models idle on separate endpoints. What raises utilization?</p>
+      <button class="q-option" data-correct="true">Inference components pack both onto one instance</button>
+      <button class="q-option">Fast Model Loader shard streaming bypasses disk</button>
+      <button class="q-option">Provisioned concurrency keeps a copy always warm</button>
+      <p class="q-explain">Packing is the utilization lever — one instance, many components, each autoscaling on its own traffic. Fast Model Loader only makes cold starts faster, and provisioned concurrency keeps one copy warm; neither fills an idle GPU.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Model pinning keeps N warm copies of a component. What does that guard?</p>
+      <button class="q-option" data-correct="true">Cold-start latency when traffic to the model spikes</button>
+      <button class="q-option">Idle cost when the component sits unused overnight</button>
+      <button class="q-option">Memory copy time when the instance restarts cold</button>
+      <p class="q-explain">Pinning is the latency guard: N warm copies mean a demand surge scales out to copies that are already loaded, so nobody waits through a cold start. The other two answers are about cost and restart speed, not about answering on time.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">You swap a model version with a blue-green update. What does it protect?</p>
+      <button class="q-option" data-correct="true">Uptime: new copies warm fully before traffic moves</button>
+      <button class="q-option">Utilization: the old copies keep billing during swap</button>
+      <button class="q-option">Throughput: both versions serve requests side by side</button>
+      <p class="q-explain">Blue-green builds the new version fully, flips traffic to it, and rolls back on failure — uptime is what it protects, at the price of briefly keeping two versions alive. Utilization and throughput are side effects at best.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Tiered KV cache plus intelligent routing: at which context does P50 TTFT fall the most?</p>
+      <button class="q-option" data-correct="true">At 64k, P50 TTFT falls 94 percent</button>
+      <button class="q-option">At 8k, P50 TTFT falls 72 percent</button>
+      <button class="q-option">At 8k, P50 TTFT falls 94 percent</button>
+      <p class="q-explain">Both numbers are real: 72% at 8k context, 94% at 64k. The longer the context, the heavier the key-value (KV) cache, so the bigger the win — that's the whole point of caching across tiers.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> <a href="https://aihub.hkuspace.hku.hk/2025/11/27/managed-tiered-kv-cache-and-intelligent-routing-for-amazon-sagemaker-hyperpod/">AWS ML blog — managed tiered KV cache and intelligent routing for SageMaker HyperPod</a>. Read the results section: the tiered-cache architecture and the per-context TTFT table show exactly how packing and caching combine on HyperPod.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "what happens to pinned copies while a component repacks?", "how is least-connections different from round-robin?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0007-sagemaker-spot-faults.html">← 0007 — Spot &amp; faults</a>
+    <span class="spacer"></span>
+    <a href="0009-ultraservers-box.html">0009 — The box →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

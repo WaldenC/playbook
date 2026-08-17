@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0009 — Inside the Box</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0009 · The hardware</p>
+    <h1>Inside the box</h1>
+    <p class="lede">The factory floor, in hardware: AWS rents you an entire rack of computers as one EC2 instance. Here is what is inside the box, and how the chips talk to each other.</p>
+  </header>
+
+  <h2>One instance, one rack</h2>
+  <p>In December 2024 AWS started renting the Trn2 UltraServer: four physical servers fused into one EC2 instance. One API call, one bill, one machine — the unit of purchase at this layer is not a chip or a server, it is a rack.</p>
+  <p>That rack holds 64 Trainium2 chips, each with 8 NeuronCores and 96 GiB of HBM (high-bandwidth memory). As one instance it sums to 768 vCPUs, ~6 TB of HBM, 83.2 peak petaflops (PFLOPs) of FP8 compute, and 12.8 Tbps of EFA (Elastic Fabric Adapter) networking — while drawing roughly 35–40 kW of power.</p>
+  <p class="cite">Specs: <a href="https://aws.amazon.com/ec2/ultraservers/">EC2 UltraServers product page</a> and the <a href="https://awsdocs-neuron.readthedocs-hosted.com/en/v2.31.0/about-neuron/arch/neuron-hardware/trn2-arch.html">Neuron docs — Trn2 architecture</a>.</p>
+
+  <h2>The second generation skipped the line</h2>
+  <p>On December 2, 2025, the Trn3 UltraServer went generally available (GA) — while the Trn2 UltraServer still sat in preview. AWS leapfrogged its own launch.</p>
+  <div class="callout">
+    <p>Trn3 fuses 144 Trainium3 chips — AWS's first 3 nm silicon — into one instance: 362 PFLOPs of FP8 compute (up to ~4.4x the Trn2), 20.7 TB of HBM3e at 706 TB/s of memory bandwidth, ~4x the performance per watt, and 5x more tokens per megawatt. Read that twice: the product line you can buy today is the second generation.</p>
+  </div>
+  <p class="cite">GA: <a href="https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-ec2-trn3-ultraservers/">AWS what's new — Trn3 UltraServers</a>; efficiency claims: <a href="https://www.aboutamazon.com/news/aws/trainium-3-ultraserver-faster-ai-training-lower-cost">Amazon news — Trainium3 UltraServers</a>.</p>
+
+  <h2>Two interconnects, two jobs</h2>
+  <p>Inside the box, chips talk over NeuronLink — the scale-up fabric. On the Trn2 that is 1,024 GB/s per chip intra-server; the Trn3 moves to a NeuronSwitch-v1 fabric with sub-10 µs chip-to-chip latency. This is the whole point of the box: 64–144 chips act as one accelerator, and traffic that never leaves the rack pays no networking tax.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 640 330" role="img" aria-label="Rack outline containing chip blocks wired by NeuronLink, with EFA arrows leaving to a neighbor rack" font-family="Georgia, 'Times New Roman', serif">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#B03E24"/>
+        </marker>
+      </defs>
+      <!-- the UltraServer rack -->
+      <rect x="30" y="40" width="280" height="240" rx="10" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="48" y="66" font-size="14" fill="#2B2620">UltraServer — one EC2 instance</text>
+      <!-- chips, row A -->
+      <rect x="60" y="90" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <rect x="115" y="90" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <rect x="170" y="90" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <rect x="225" y="90" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <!-- chips, row B -->
+      <rect x="60" y="170" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <rect x="115" y="170" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <rect x="170" y="170" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <rect x="225" y="170" width="42" height="28" rx="4" fill="#FDFBF4" stroke="#E6DFCE"/>
+      <!-- NeuronLink lane + stubs -->
+      <line x1="60" y1="146" x2="267" y2="146" stroke="#D94F30" stroke-width="3"/>
+      <line x1="81" y1="146" x2="81" y2="118" stroke="#D94F30" stroke-width="2"/>
+      <line x1="136" y1="146" x2="136" y2="118" stroke="#D94F30" stroke-width="2"/>
+      <line x1="191" y1="146" x2="191" y2="118" stroke="#D94F30" stroke-width="2"/>
+      <line x1="246" y1="146" x2="246" y2="118" stroke="#D94F30" stroke-width="2"/>
+      <line x1="81" y1="146" x2="81" y2="170" stroke="#D94F30" stroke-width="2"/>
+      <line x1="136" y1="146" x2="136" y2="170" stroke="#D94F30" stroke-width="2"/>
+      <line x1="191" y1="146" x2="191" y2="170" stroke="#D94F30" stroke-width="2"/>
+      <line x1="246" y1="146" x2="246" y2="170" stroke="#D94F30" stroke-width="2"/>
+      <text x="60" y="212" font-size="12" fill="#6E675A">64 Trainium2 chips — 8 NeuronCores each</text>
+      <text x="60" y="262" font-size="12" fill="#6E675A">NeuronLink · 1,024 GB/s per chip (Trn2)</text>
+      <text x="60" y="280" font-size="12" fill="#6E675A">scale-up — inside the box</text>
+      <!-- EFA arrows to the neighbor rack -->
+      <line x1="310" y1="100" x2="430" y2="100" stroke="#B03E24" stroke-width="3" marker-end="url(#arrow)"/>
+      <line x1="310" y1="160" x2="430" y2="160" stroke="#B03E24" stroke-width="3" marker-end="url(#arrow)"/>
+      <line x1="310" y1="220" x2="430" y2="220" stroke="#B03E24" stroke-width="3" marker-end="url(#arrow)"/>
+      <text x="330" y="292" font-size="12" fill="#B03E24">EFA · scale-out — rack to rack</text>
+      <!-- the next rack -->
+      <rect x="440" y="70" width="150" height="180" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="455" y="96" font-size="12" fill="#6E675A">the next rack</text>
+      <text x="455" y="116" font-size="12" fill="#6E675A">in the UltraCluster</text>
+    </svg>
+    <figcaption class="figcap">One UltraServer: chips wired by NeuronLink act as a single accelerator inside the box; EFA carries the traffic that leaves for neighboring racks.</figcaption>
+  </figure>
+
+  <p>Between boxes, traffic rides EFA — the scale-out fabric. UltraClusters wire tens of thousands of UltraServers into a petabit-scale nonblocking network, and collectives follow the hierarchy: reduce within the 64-chip node first over NeuronLink, then across nodes over EFA.</p>
+  <p class="cite">Interconnects: <a href="https://awsdocs-neuron.readthedocs-hosted.com/en/v2.28.1/neuron-runtime/about/collectives.html">Neuron docs — collective communications</a>.</p>
+
+  <h2>The SDE view from the floor</h2>
+  <p>Power is the first number an engineer here learns: ~35–40 kW per UltraServer is why AWS now quotes efficiency in tokens-per-megawatt instead of raw FLOPs. The box is not just silicon — it is a power and cooling problem wearing a server rack.</p>
+  <p>Everything that lands on this floor starts as a bring-up problem: a new architecture has to be compiled onto Trainium's instruction set before it runs. That software story is the next lesson's door.</p>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">The box, checked</p>
+
+    <div class="q-block">
+      <p class="q-text">What exactly does AWS rent you with one Trn2 UltraServer?</p>
+      <button class="q-option" data-correct="true">One whole rack fused into a single EC2 instance</button>
+      <button class="q-option">A big cluster of separate machines managed as one</button>
+      <button class="q-option">A single server box holding sixty-four separate GPU cards</button>
+      <p class="q-explain">The rack is the machine. Four physical servers are fused into one EC2 instance, and 64 Trainium2 chips act as a single accelerator — that fusion is the product. A loose cluster of servers would need network hops between every step of a collective; the fused box does not.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">How does the Trn3 UltraServer stack up against the Trn2?</p>
+      <button class="q-option" data-correct="true">362 PFLOPs of FP8 compute, up to 4.4x the Trn2</button>
+      <button class="q-option">The same chips again, running faster with lower power draw</button>
+      <button class="q-option">A smaller design that already halves both cost and memory</button>
+      <p class="q-explain">Trn3 went GA on December 2, 2025 while the Trn2 UltraServer still sat in preview — AWS leapfrogged its own line. It fuses 144 Trainium3 chips (AWS's first 3 nm silicon) for 362 PFLOPs of FP8 compute, up to ~4.4x the Trn2, plus ~4x the performance per watt and 5x more tokens per megawatt.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">What is the difference between NeuronLink and EFA?</p>
+      <button class="q-option" data-correct="true">NeuronLink is scale-up inside the rack; EFA is scale-out between racks</button>
+      <button class="q-option">Both are network fabrics that connect UltraServers into a single cluster</button>
+      <button class="q-option">EFA moves data inside a server while NeuronLink spans the clusters</button>
+      <p class="q-explain">Scale-up vs scale-out. NeuronLink is the short, fat fabric inside the box — 1,024 GB/s per chip on the Trn2 — that fuses chips into one accelerator. EFA is the long, many-to-many fabric between boxes, wiring UltraServers into UltraClusters.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Why does fusing 64 to 144 chips into one instance actually matter?</p>
+      <button class="q-option" data-correct="true">No networking tax for traffic that never leaves the box</button>
+      <button class="q-option">Each chip can now run its own whole separate workload</button>
+      <button class="q-option">It is just a cheaper way of selling many chips</button>
+      <p class="q-explain">The collectives that dominate training run over NeuronLink at 1,024 GB/s per chip instead of traversing the cluster — the rack pays no network tax for traffic that never leaves it. That is why 64–144 chips can behave like one huge accelerator, and why the product is one EC2 instance rather than 64 of them.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> <a href="https://aws.amazon.com/ec2/ultraservers/">AWS EC2 UltraServers product page</a>. Read it top to bottom — it is the pitch for the box itself, with the "one instance" framing and the hardware summary you just unpacked.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "why is the whole rack one instance and not 64 machines?", "what actually travels over NeuronLink vs EFA?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0008-sagemaker-packing.html">← 0008 — SageMaker packing</a>
+    <span class="spacer"></span>
+    <a href="0010-ultraservers-no-cuda-faults.html">0010 — No CUDA faults →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

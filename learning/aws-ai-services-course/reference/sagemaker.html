@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SageMaker Cheat Sheet — AWS AI Services</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="ref">
+  <p class="eyebrow">Reference · AWS AI Services</p>
+  <h1>SageMaker cheat sheet</h1>
+  <p class="print-hint">Prints cleanly. Facts as of Aug 2026 — verify pricing before quoting.</p>
+
+  <h2>What it is</h2>
+  <p>The ML platform: train, deploy, and operate your own models on your own containers and hardware. Renamed <strong>SageMaker AI</strong> Dec 2024/Feb 2025. <strong>Unified Studio</strong> (GA Mar 2025) is the IDE bundling data, analytics, and AI (Athena, Glue, Redshift, Bedrock, Airflow). Studio Classic is maintenance-only; Notebook Instances on AL2 reach end of life June 30, 2026. <span class="cite"><a href="https://docs.aws.amazon.com/next-generation-sagemaker/latest/userguide/what-is-sagemaker.html">what is SageMaker</a></span></p>
+  <p>Scale claim from job postings: training runs on "hundreds of thousands of machines with &lt;0.1% failure rate." HyperPod hard API limit: 6,758 instances per instance group.</p>
+
+  <h2>Cold starts (the #1 daily problem)</h2>
+  <table>
+    <tr><th>Symptom</th><th>Mechanism</th><th>Mitigations</th></tr>
+    <tr><td>Serverless endpoint scales to zero; first call takes ~6–45 s</td><td>Container boot → image pull (10 GB+) → weight load → first token</td><td>Provisioned concurrency (keep warm copies; max 200 concurrent invocations)</td></tr>
+    <tr><td>Slow scale-out</td><td>Re-pulling images</td><td>Container image caching (June 2026): up to 2x faster end-to-end scale-out</td></tr>
+    <tr><td>Slow weight load</td><td>Weights through CPU and disk</td><td>Fast Model Loader (2024): pre-sharded 8 MB chunks streamed S3 → GPU memory via DMA — up to 15x faster; Llama-3.1-70B scale-out ~407 s → ~335 s; autoscaling ~58% faster</td></tr>
+  </table>
+  <p class="cite"><a href="https://aws.amazon.com/cn/blogs/machine-learning/introducing-fast-model-loader-in-sagemaker-inference-accelerate-autoscaling-for-your-large-language-models-llms-part-1/">Fast Model Loader</a> · <a href="https://aws.amazon.com/cn/about-aws/whats-new/2026/06/sagemakerai-inf-scale-out-time/">image caching</a></p>
+
+  <h2>Spot training: the discount aisle</h2>
+  <ul>
+    <li>Up to 90% off list price (real-world 60–70%); AWS can reclaim with ~2 minutes' notice.</li>
+    <li>You set <code>MaxWaitTimeInSeconds</code> (total budget, retries across reclaims) and <code>CheckpointConfig</code> (S3 location). Recommended cadence: checkpoint every 15–30 min.</li>
+    <li>Cinnamon AI: 70% cost savings + 40% more daily jobs.</li>
+  </ul>
+  <p class="cite"><a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-managed-spot-training.html">Managed Spot docs</a> · <a href="https://aws.amazon.com/cn/blogs/machine-learning/cinnamon-ai-saves-70-on-ml-model-training-costs-with-amazon-sagemaker-managed-spot-training/">Cinnamon case</a></p>
+
+  <h2>Packing: one GPU, many tenants</h2>
+  <ul>
+    <li><strong>Inference components</strong> slice one instance across models (e.g., Stable Diffusion 1 GPU + Llama 2 2 GPUs on one g5.12xlarge), each with per-model autoscaling.</li>
+    <li>Model pinning keeps N warm copies; least-connections routing spreads load.</li>
+    <li><strong>Tiered KV cache + intelligent routing</strong> (Nov 2025, HyperPod): up to 40% latency reduction, 25% throughput gain; Llama-3.1-70B P50 TTFT −72% at 8k context, −94% at 64k.</li>
+    <li>Deployment safety: rolling updates — all-at-once / canary / linear / blue-green, per-component capacity percentages.</li>
+  </ul>
+
+  <h2>Fault tolerance</h2>
+  <ul>
+    <li>Meta reported a GPU failure roughly every 3 hours during LLaMA training — long runs must assume death.</li>
+    <li>HyperPod self-healing detects and replaces failed nodes.</li>
+    <li>Dec 2025 <strong>checkpointless training</strong>: model state replicated peer-to-peer; recovery in minutes; &gt;80% downtime reduction. Amazon Nova trained on "tens of thousands of accelerators" with it.</li>
+    <li><strong>Elastic training</strong> (2025): jobs grow mid-run opportunistically, preserving global batch size, with anti-thrashing backoff.</li>
+  </ul>
+  <p class="cite"><a href="https://aws.amazon.com/blogs/china/introducing-checkpointless-and-elastic-training-on-amazon-sagemaker-hyperpod/">checkpointless + elastic</a></p>
+
+  <h2>Capacity procurement</h2>
+  <p><strong>HyperPod Flexible Training Plans:</strong> reserve 1–256 instances, up to 8 weeks ahead, for up to 6 months; instant start within 30 min; if no continuous block exists the system auto-splits into two segments and returns up to 3 options.</p>
+
+  <h2>The engine story</h2>
+  <p>SageMaker doesn't build its own LLM serving engine as the primary path — it hosts open engines. First <strong>SGLang DLC Nov 2025</strong> (sglang:0.5.5); first-party <strong>vLLM DLC Dec 2025</strong>; BYOC with vLLM/SGLang/TensorRT-LLM. AWS differentiates with the infrastructure around the engines: Fast Model Loader, tiered KV cache, inference components.</p>
+
+  <h2>Rest of the catalog (one-liners)</h2>
+  <ul>
+    <li><strong>Training Jobs</strong> — the original API: point at a script, pick instances.</li>
+    <li><strong>JumpStart</strong> — model zoo: one-click deploy of open models.</li>
+    <li><strong>Pipelines / MLOps</strong> — DAGs + Model Registry + Model Monitor.</li>
+    <li><strong>Autopilot</strong> — AutoML.</li>
+    <li><strong>Feature Store, Ground Truth, Edge Manager</strong> — data prep and edge deployment.</li>
+    <li><strong>Nova Forge</strong> — custom frontier-model training from checkpoints, ~$100K/year subscription, GA Dec 2025.</li>
+  </ul>
+
+  <p class="cite">Related: <a href="bedrock.html">Bedrock cheat sheet</a> · <a href="ultraservers.html">UltraServers cheat sheet</a> · <a href="glossary.html">glossary</a></p>
+</article>
+</body>
+</html>

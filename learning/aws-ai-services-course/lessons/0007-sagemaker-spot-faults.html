@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0007 — Cheap machines that die</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0007 · Cheap machines that die</p>
+    <h1>Cheap machines that die</h1>
+    <p class="lede">Spot training rents you idle GPUs at up to 90% off the list price — because AWS can take them back mid-run. The whole art is making an interruption cost minutes instead of days.</p>
+  </header>
+
+  <h2>The discount aisle</h2>
+  <p>SageMaker's Managed Spot Training is an auction for idle GPUs. At any moment part of the fleet sits unused, and the platform sells that capacity at up to 90% off the on-demand list price — real-world discounts land around 60–70%. The catch: AWS can reclaim the machine with about two minutes' notice.</p>
+  <p>Two minutes is enough time to do nothing but stop. So the design question is never <em>whether</em> a machine will die mid-run — it's what you lose when it does.</p>
+
+  <h2>The knobs</h2>
+  <p>A spot job declares the deal in two fields. <code>MaxWaitTimeInSeconds</code> is the total budget: 259200 in the snippet below means "keep trying for three days", even across repeated reclaims. <code>CheckpointConfig</code> names the S3 (Simple Storage Service) location where progress lands before the machines go.</p>
+
+  <figure class="fig">
+    <pre><code>{
+  "TrainingJobName": "llama-finetune",
+  "ResourceConfig": {
+    "InstanceType": "ml.p5.48xlarge",
+    "InstanceCount": 8 },
+  "EnableManagedSpotTraining": true,
+  "StoppingCondition": { "MaxWaitTimeInSeconds": 259200 },
+  "CheckpointConfig": { "S3Uri": "s3://my-bucket/checkpoints/" }
+}</code></pre>
+    <figcaption class="figcap">Read it as: eight H100-class machines, discounted, retrying for three days total, saving progress to S3 — so a reclaim is a pause, not a death.</figcaption>
+  </figure>
+  <p class="cite">Shapes, not working payloads — modeled on SageMaker's CreateTrainingJob request for Managed Spot Training. <a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-managed-spot-training.html">AWS docs — Managed Spot Training</a>.</p>
+
+  <h2>Checkpoint, checkpoint, checkpoint</h2>
+  <p>AWS's guidance is to checkpoint every 15–30 minutes. Then a two-minute notice costs you at most one interval of work, and the job resumes on the next free spot slot instead of restarting from zero.</p>
+  <p>The economics add up. Cinnamon AI, which trains models for Japanese businesses, cut training costs by 70% and ran 40% more daily jobs by moving to spot — same budget, more experiments.</p>
+  <p class="cite"><a href="https://aws.amazon.com/cn/blogs/machine-learning/cinnamon-ai-saves-70-on-ml-model-training-costs-with-amazon-sagemaker-managed-spot-training/">AWS ML blog — Cinnamon AI saves 70% with Managed Spot Training</a>.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 640 240" role="img" aria-label="Spot lifecycle: run, two-minute warning, checkpoint, reclaim, resume, looping back while the wait budget lasts" font-family="Georgia, 'Times New Roman', serif">
+      <!-- nodes -->
+      <g>
+        <rect x="28" y="64" width="104" height="62" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="80" y="94" font-size="14" fill="#2B2620" text-anchor="middle">Run</text>
+        <text x="80" y="111" font-size="10.5" fill="#6E675A" text-anchor="middle">training proceeds</text>
+      </g>
+      <g>
+        <rect x="146" y="64" width="104" height="62" rx="8" fill="#FDEEE7" stroke="#D94F30"/>
+        <text x="198" y="94" font-size="14" fill="#2B2620" text-anchor="middle">Warning</text>
+        <text x="198" y="111" font-size="10.5" fill="#6E675A" text-anchor="middle">~2 min notice</text>
+      </g>
+      <g>
+        <rect x="264" y="64" width="104" height="62" rx="8" fill="#D94F30" stroke="#D94F30"/>
+        <text x="316" y="94" font-size="14" fill="#FDFBF4" text-anchor="middle">Checkpoint</text>
+        <text x="316" y="111" font-size="10.5" fill="#FDFBF4" text-anchor="middle">every 15–30 min</text>
+      </g>
+      <g>
+        <rect x="382" y="64" width="104" height="62" rx="8" fill="#2B2620" stroke="#2B2620"/>
+        <text x="434" y="94" font-size="14" fill="#FDFBF4" text-anchor="middle">Reclaim</text>
+        <text x="434" y="111" font-size="10.5" fill="#9A927F" text-anchor="middle">machine gone</text>
+      </g>
+      <g>
+        <rect x="500" y="64" width="104" height="62" rx="8" fill="#B03E24" stroke="#B03E24"/>
+        <text x="552" y="94" font-size="14" fill="#FDFBF4" text-anchor="middle">Resume</text>
+        <text x="552" y="111" font-size="10.5" fill="#FDFBF4" text-anchor="middle">next spot slot</text>
+      </g>
+      <!-- forward arrows -->
+      <g stroke="#6E675A" stroke-width="2">
+        <line x1="132" y1="95" x2="140" y2="95"/>
+        <line x1="250" y1="95" x2="258" y2="95"/>
+        <line x1="368" y1="95" x2="376" y2="95"/>
+        <line x1="486" y1="95" x2="494" y2="95"/>
+      </g>
+      <g fill="#6E675A">
+        <polygon points="146,89 156,95 146,101"/>
+        <polygon points="264,89 274,95 264,101"/>
+        <polygon points="382,89 392,95 382,101"/>
+        <polygon points="500,89 510,95 500,101"/>
+      </g>
+      <!-- retry loop -->
+      <path d="M 552 126 L 552 176 L 80 176 L 80 126" fill="none" stroke="#B03E24" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <polygon points="74,136 86,136 80,126" fill="#B03E24"/>
+      <text x="316" y="198" font-size="12" fill="#6E675A" text-anchor="middle">retries — until MaxWaitTimeInSeconds is spent</text>
+    </svg>
+    <figcaption class="figcap">The spot lifecycle: run, get the two-minute warning, checkpoint, get reclaimed, resume on fresh capacity — and loop until the wait budget runs out.</figcaption>
+  </figure>
+
+  <h2>Assume death</h2>
+  <p>Checkpointing exists because long runs die. Meta reported a GPU failure roughly every three hours while training LLaMA, so a multi-day run is a survival exercise, not a computation. HyperPod's first answer is self-healing: it detects failed nodes and replaces them.</p>
+  <p>In December 2025 SageMaker went further. Checkpointless training replicates the model state peer to peer across the cluster, so when a node dies the survivors rebuild the lost copy in minutes — more than 80% less downtime — and Amazon Nova trained on tens of thousands of accelerators this way.</p>
+  <p>Elastic training, added in 2025, lets a running job grow onto spare capacity mid-run while preserving the global batch size, with a backoff that stops the job from thrashing between sizes.</p>
+  <p class="cite"><a href="https://aws.amazon.com/blogs/china/introducing-checkpointless-and-elastic-training-on-amazon-sagemaker-hyperpod/">AWS blog — Checkpointless and elastic training on SageMaker HyperPod</a>.</p>
+
+  <div class="callout">
+    <p>One sentence to keep: spot makes machines cheap and unreliable; checkpoints turn unreliability into a pause; and the platform keeps retrying until the budget runs out.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">Surviving the reclaim</p>
+
+    <div class="q-block">
+      <p class="q-text">Your 3-day training run is at hour 40 when AWS reclaims your spot instances. What does a well-built job do?</p>
+      <button class="q-option" data-correct="true">Resume from the last checkpoint and retry again</button>
+      <button class="q-option">Restart the whole job from scratch all over</button>
+      <button class="q-option">Buy on-demand machines that AWS will never reclaim</button>
+      <p class="q-explain">A checkpoint every 15–30 minutes means the reclaim costs you at most half an hour of work, not the 40 hours you'd lose restarting from zero — and MaxWaitTimeInSeconds keeps the job retrying on fresh spot capacity until its total budget is spent. Paying on-demand prices is the one thing spot training is meant to avoid.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">You enable Managed Spot Training for a job. Which field controls the total time budget, including retries across reclaims?</p>
+      <button class="q-option" data-correct="true">MaxWaitTimeInSeconds, the retry budget for the whole job</button>
+      <button class="q-option">InstanceCount, the number of machines in the cluster</button>
+      <button class="q-option">VolumeSizeInGB, the disk space given to each machine</button>
+      <p class="q-explain">MaxWaitTimeInSeconds is the wall-clock budget the job keeps trying within — 259200 seconds is three days, and reclaims eat into it like any other wait. InstanceCount only sizes the cluster, and VolumeSizeInGB only sizes the attached storage; neither one makes the job retry.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">AWS sends a reclaim warning for your spot machine. How much notice do you get?</p>
+      <button class="q-option" data-correct="true">About two minutes, so checkpoint every half hour</button>
+      <button class="q-option">About two hours, so checkpoint at day's end</button>
+      <button class="q-option">No warning at all, machines vanish with progress</button>
+      <p class="q-explain">AWS gives about two minutes of warning before reclaiming a spot machine. That's why the guidance is a 15–30 minute checkpoint cadence: the most you can lose is one interval, and the job resumes on fresh spot capacity. The short notice is the whole reason the discount exists — AWS needs the machine back fast, and your job only needs to stop cleanly.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">A HyperPod node dies during checkpointless training. What keeps the job alive?</p>
+      <button class="q-option" data-correct="true">Model state replicates peer to peer for recovery</button>
+      <button class="q-option">It restarts the whole job from the beginning</button>
+      <button class="q-option">Swapping spare nodes in loses all the progress</button>
+      <p class="q-explain">In checkpointless training the model state lives replicated across the cluster — a peer-to-peer copy, not a single checkpoint file. When a node dies, the survivors rebuild the missing copy in minutes, which is how Amazon reports more than 80% less training downtime and how Nova trained on tens of thousands of accelerators. Restarting the job, or swapping a node with no replica anywhere, is the old world.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> <a href="https://docs.aws.amazon.com/sagemaker/latest/dg/model-managed-spot-training.html">AWS docs — Managed Spot Training</a>. Read the deal as AWS defines it: spot semantics, the two-minute warning, and the MaxWaitTimeInSeconds best practices.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Spot still fuzzy? Ask the agent — "what exactly does MaxWaitTimeInSeconds count?", "how does peer-to-peer state replication work without a coordinator?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0006-sagemaker-cold-starts.html">← 0006 — Cold starts</a>
+    <span class="spacer"></span>
+    <a href="0008-sagemaker-packing.html">0008 — Packing →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

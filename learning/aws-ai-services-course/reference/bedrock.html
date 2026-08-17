@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bedrock Cheat Sheet — AWS AI Services</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="ref">
+  <p class="eyebrow">Reference · AWS AI Services</p>
+  <h1>Bedrock cheat sheet</h1>
+  <p class="print-hint">Prints cleanly. Facts as of Aug 2026 — verify pricing and catalog before quoting.</p>
+
+  <h2>What it is</h2>
+  <p>Managed model access: ~200 models behind one API, pay per token, no machines to run. Scale claims: 125K+ customers, ~80% of the Fortune 100, multibillion-dollar run rate, more tokens in Q1 2026 than all prior years combined. <span class="cite"><a href="https://aboutamazon.com/news/company-news/amazon-ceo-andy-jassy-aws-ai-q1-2026-earnings">source</a></span></p>
+
+  <h2>The catalog</h2>
+  <table>
+    <tr><th>Family</th><th>Models on Bedrock</th></tr>
+    <tr><td>Anthropic Claude</td><td>Opus 4.5/4.6, Sonnet 4.5/4.6/5</td></tr>
+    <tr><td>Amazon Nova</td><td>Micro / Lite / Pro / Premier; Nova 2 Lite / Pro / Sonic / Omni. Runs on Trainium. First-party.</td></tr>
+    <tr><td>Meta Llama</td><td>Llama 4 Scout has a 10M-token context</td></tr>
+    <tr><td>OpenAI</td><td>GPT-5.5 / 5.4 / Codex, GPT-5.6 — GA since June 2026. Serves from a bedrock-mantle endpoint.</td></tr>
+    <tr><td>Others</td><td>Mistral, DeepSeek, Qwen3, Cohere. Titan is legacy.</td></tr>
+  </table>
+  <p class="cite"><a href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-cards-anthropic.html">model cards</a> · <a href="https://aws.amazon.com/blogs/machine-learning/openai-models-and-codex-on-amazon-bedrock-are-now-generally-available/">OpenAI GA</a></p>
+
+  <h2>Pricing & privacy</h2>
+  <ul>
+    <li>Per input/output token; output typically 4–10x the input price.</li>
+    <li>Batch inference: ~50% off, for deferrable work.</li>
+    <li>Claude and OpenAI prices match first-party prices — no markup.</li>
+    <li>Privacy: prompts never used for training, not shared with model providers, no retention by default.</li>
+  </ul>
+
+  <h2>Serving mechanics</h2>
+  <table>
+    <tr><th>Mechanism</th><th>Numbers that matter</th></tr>
+    <tr><td>Prefill vs decode</td><td>Prefill = read whole prompt, produce first token. Decode = one token at a time, memory-bandwidth-bound.</td></tr>
+    <tr><td>TTFT vs tokens/sec</td><td>The two metrics SDEs guard: time-to-first-token, then output speed.</td></tr>
+    <tr><td>Prompt caching (cachePoint)</td><td>Cache read up to 90% cheaper than write; AWS claims up to 90% cost / 85% TTFT reduction. Community benchmark on Llama 3.3 70B: ~80 ms hit vs ~800 ms miss — a 10x gap.</td></tr>
+    <tr><td>Cross-region inference profiles</td><td>Spread load across regions; us-east-1 ↔ us-west-2 ~65 ms RTT, to ap-southeast-1 ~220 ms.</td></tr>
+    <tr><td>Quota accounting</td><td>Tokens-per-minute; output tokens weighted 5:1.</td></tr>
+    <tr><td>Latency-optimized inference</td><td>Per-request flag; up to 51.65% lower TTFT P50 and 97.1% lower P90 for Llama 3.1 70B (AWS claim, Trainium 2).</td></tr>
+    <tr><td>The engine ("Mantle")</td><td>Job postings require vLLM / TensorRT / Triton familiarity. vLLM-adjacent foundations.</td></tr>
+  </table>
+  <p class="cite"><a href="https://aws.amazon.com/blogs/machine-learning/effectively-use-prompt-caching-on-amazon-bedrock/">prompt caching</a> · <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/monitoring-runtime-metrics.md">runtime metrics</a> · <a href="https://www.amazon.jobs/en/jobs/10489921/senior-software-development-engineer-aws-mantle">Mantle posting</a></p>
+
+  <h2>Customer features beyond the raw API</h2>
+  <ul>
+    <li><strong>Guardrails:</strong> content/topic/PII filters in the request path; multimodal image filters (up to 88% of harmful content blocked, AWS claim); standalone ApplyGuardrail API.</li>
+    <li><strong>Knowledge Bases:</strong> managed RAG — chunking, embeddings, vector store, hybrid search, GraphRAG (GA Mar 2025), natural-language-to-SQL.</li>
+    <li><strong>Agents:</strong> Bedrock Agents (action groups + KBs) and AgentCore (GA Oct 2025) — Runtime, Memory, Gateway, Identity, Observability, Code Interpreter, Managed Browser, Evaluations; A2A protocol; policy gates with automated reasoning.</li>
+    <li><strong>Rufus</strong> (Amazon's shopping assistant, 250M customers in 2025) dogfoods intelligent prompt routing: complex queries → Claude Sonnet, simple ones → small fast models.</li>
+  </ul>
+
+  <h2>When it breaks</h2>
+  <p>Oct 20, 2025: a DynamoDB DNS failure cascaded and the Converse API failed for ~2.5 h with <code>ConflictException: Lock already in use</code>. This is why cross-region profiles exist. <span class="cite"><a href="https://cloudlooking.glass/outages/aws-20251020.html">outage report</a></span></p>
+
+  <h2>What Bedrock SDEs fight daily</h2>
+  <ul>
+    <li>Model onboarding without breaking customers pinned to old versions (model-version IDs keep old callers stable).</li>
+    <li>Latency SLOs: TTFT percentiles and cache-hit ratios.</li>
+    <li>Multi-tenant packing: continuous batching and KV-cache memory management across many customers per accelerator.</li>
+    <li>Capacity spikes: absorbed via cross-region profiles and quota controls.</li>
+  </ul>
+
+  <p class="cite">Related: <a href="sagemaker.html">SageMaker cheat sheet</a> · <a href="ultraservers.html">UltraServers cheat sheet</a> · <a href="glossary.html">glossary</a></p>
+</article>
+</body>
+</html>

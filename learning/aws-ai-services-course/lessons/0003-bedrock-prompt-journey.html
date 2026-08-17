@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0003 — One Request, End to End</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0003 · One request</p>
+    <h1>One request, end to end</h1>
+    <p class="lede">A Converse call is a pipeline, not a hop: router, guardrail, prefix cache, prefill, decode, stream. Two numbers decide whether it feels fast — time-to-first-token (TTFT) and tokens per second.</p>
+  </header>
+
+  <h2>The journey</h2>
+  <p>Your app sends one request. A router picks the fastest path for that model and region, then a guardrail checks content, topic, and personally identifiable information (PII) before anything reaches the model. The output gets a second guardrail pass on the way back.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 640 372" role="img" aria-label="Flow of one Bedrock request: prompt through router, guardrail, and prefix cache, then a branch where a cache hit skips prefill, then decode and stream" font-family="Georgia, 'Times New Roman', serif">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#D94F30"/>
+        </marker>
+      </defs>
+      <!-- row 1: prompt to cache -->
+      <g>
+        <rect x="20" y="36" width="110" height="54" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="75" y="63" font-size="15" fill="#2B2620" text-anchor="middle">Prompt</text>
+        <text x="75" y="80" font-size="11" fill="#6E675A" text-anchor="middle">your Converse call</text>
+      </g>
+      <g>
+        <rect x="150" y="36" width="110" height="54" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="205" y="63" font-size="15" fill="#2B2620" text-anchor="middle">Router</text>
+        <text x="205" y="80" font-size="11" fill="#6E675A" text-anchor="middle">picks the fast path</text>
+      </g>
+      <g>
+        <rect x="280" y="36" width="110" height="54" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="335" y="63" font-size="15" fill="#2B2620" text-anchor="middle">Guardrail</text>
+        <text x="335" y="80" font-size="11" fill="#6E675A" text-anchor="middle">content, topic, PII</text>
+      </g>
+      <g>
+        <rect x="410" y="36" width="110" height="54" rx="8" fill="#FDEEE7" stroke="#D94F30"/>
+        <text x="465" y="63" font-size="15" fill="#2B2620" text-anchor="middle">Prefix cache</text>
+        <text x="465" y="80" font-size="11" fill="#6E675A" text-anchor="middle">hit or miss?</text>
+      </g>
+      <line x1="130" y1="63" x2="146" y2="63" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="260" y1="63" x2="276" y2="63" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="390" y1="63" x2="406" y2="63" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <!-- branch: miss to the right, hit to the left -->
+      <path d="M 465 90 V 128 H 485 V 164" fill="none" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <path d="M 445 90 V 128 H 95 V 164" fill="none" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="475" y="121" font-size="11.5" fill="#D94F30" text-anchor="middle">miss</text>
+      <text x="270" y="121" font-size="11.5" fill="#D94F30" text-anchor="middle">hit</text>
+      <g>
+        <rect x="20" y="170" width="150" height="58" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="95" y="198" font-size="15" fill="#2B2620" text-anchor="middle">Hit</text>
+        <text x="95" y="215" font-size="11" fill="#6E675A" text-anchor="middle">skip prefill · ~80 ms</text>
+      </g>
+      <g>
+        <rect x="410" y="170" width="150" height="58" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="485" y="198" font-size="15" fill="#2B2620" text-anchor="middle">Prefill</text>
+        <text x="485" y="215" font-size="11" fill="#6E675A" text-anchor="middle">read it all · ~800 ms</text>
+      </g>
+      <!-- merge into decode, then stream -->
+      <path d="M 95 228 V 252 H 320 V 276" fill="none" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <path d="M 485 228 V 264 H 320 V 276" fill="none" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="440" y="246" font-size="11" fill="#6E675A" text-anchor="middle">sets TTFT</text>
+      <g>
+        <rect x="245" y="280" width="150" height="58" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="320" y="308" font-size="15" fill="#2B2620" text-anchor="middle">Decode</text>
+        <text x="320" y="325" font-size="11" fill="#6E675A" text-anchor="middle">one token at a time</text>
+      </g>
+      <g>
+        <rect x="450" y="280" width="150" height="58" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="525" y="308" font-size="15" fill="#2B2620" text-anchor="middle">Stream</text>
+        <text x="525" y="325" font-size="11" fill="#6E675A" text-anchor="middle">first token out</text>
+      </g>
+      <line x1="395" y1="309" x2="446" y2="309" stroke="#D94F30" stroke-width="2" marker-end="url(#arrow)"/>
+      <text x="320" y="354" font-size="11" fill="#6E675A" text-anchor="middle">sets tokens / sec</text>
+      <text x="525" y="354" font-size="11" fill="#6E675A" text-anchor="middle">streams to your app</text>
+    </svg>
+    <figcaption class="figcap">Six stages, one branch. A cache hit skips prefill — the whole-prompt read that sets time-to-first-token — and heads straight to decode.</figcaption>
+  </figure>
+
+  <h2>The two numbers SDEs guard</h2>
+  <p>Inference runs in two phases. Prefill reads the whole prompt and produces the first token — its wall-clock time is TTFT. Decode then emits tokens one at a time, bounded by memory bandwidth; its rate is tokens per second. TTFT is the wait; tokens per second is the speed once words start.</p>
+  <p>The cache moves the boundary. A community benchmark on Llama 3.3 70B measured roughly 80 ms to the first token on a cache hit versus roughly 800 ms on a miss — a 10x gap.</p>
+  <p class="cite">TTFT is a first-class runtime metric in Bedrock — see the <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/monitoring-runtime-metrics.md">runtime metrics docs</a>. Hit-vs-miss benchmark and AWS claims: <a href="https://aws.amazon.com/blogs/machine-learning/effectively-use-prompt-caching-on-amazon-bedrock/">AWS ML blog on prompt caching</a>.</p>
+
+  <div class="callout">
+    <p>The number to keep: 80 ms hit, 800 ms miss. A stable prefix is the cheapest TTFT lever you own — no model change, no new endpoint.</p>
+  </div>
+
+  <h2>Marking the cache point</h2>
+  <p>You mark a cachePoint in the request, usually on the system prompt — the part of the payload that never changes. Reads are up to 90% cheaper than writes, and AWS claims up to 90% cost reduction and 85% TTFT reduction for cached prefixes. Change one word and you've written a new prefix: the cache pays only when the front of your prompt stays stable.</p>
+
+  <figure class="fig">
+    <pre><code>{
+  "modelId": "us.anthropic.claude-sonnet-5",
+  "performanceConfig": { "latency": "optimized" },
+  "system": [{ "cachePoint": { "type": "default" },
+               "text": "You are a support agent for an airline." }],
+  "messages": [{ "role": "user",
+    "content": [{ "text": "Is my luggage fee refundable?" }] }]
+}</code></pre>
+    <figcaption class="figcap">Two levers in one request: cachePoint marks the stable system prompt so the next call skips prefill; performanceConfig asks for the latency-optimized path on this call only.</figcaption>
+  </figure>
+
+  <h2>The knobs, and the failure that justified them</h2>
+  <p>Latency-optimized inference is a per-request flag — AWS reports up to 51.65% lower TTFT P50 and 97.1% lower TTFT P90 for Llama 3.1 70B on Trainium 2. Cross-region inference profiles spread your traffic across regions, but geography is priced in: us-east-1 to us-west-2 is roughly 65 ms round-trip; us-east-1 to ap-southeast-1 is roughly 220 ms.</p>
+  <p>The profiles exist because of one incident. On October 20, 2025, a DynamoDB DNS failure cascaded through us-east-1, and Bedrock's Converse API failed for about 2.5 hours with ConflictException: Lock already in use. Quotas are the last number to respect: Bedrock meters tokens per minute, and output tokens are weighted 5:1.</p>
+  <p>The engine under all of it is Mantle, Bedrock's multi-tenant serving engine — its SDE postings name vLLM, TensorRT, and Triton as required familiarity, the same serving stack the rest of the industry runs.</p>
+  <p class="cite">Latency-optimized inference claims: <a href="https://aws.amazon.com/blogs/machine-learning/optimizing-ai-responsiveness-a-practical-guide-to-amazon-bedrock-latency-optimized-inference/">AWS ML blog</a>. October 20, 2025 incident: <a href="https://cloudlooking.glass/outages/aws-20251020.html">cloudlooking.glass write-up</a>. Mantle's engine stack: <a href="https://www.amazon.jobs/en/jobs/10489921/senior-software-development-engineer-aws-mantle">AWS Mantle SDE posting</a>.</p>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">The pipeline, in four questions</p>
+
+    <div class="q-block">
+      <p class="q-text">Which phase owns time-to-first-token, and which owns tokens per second?</p>
+      <button class="q-option" data-correct="true">Prefill owns the first token; decode owns the stream speed</button>
+      <button class="q-option">Decode owns the first token; prefill owns the stream speed</button>
+      <button class="q-option">Router owns the first token; guardrail owns the stream speed</button>
+      <p class="q-explain">Prefill reads the whole prompt before it can emit anything — that wall-clock time is TTFT. Decode then runs one token at a time, memory-bandwidth-bound, and its rate is tokens per second. The router and guardrail run before either phase and add their own latency.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Your system prompt is long but never changes, and a cachePoint is set. What changes on the next call?</p>
+      <button class="q-option" data-correct="true">Calls skip prefill and the first token lands about ten times faster</button>
+      <button class="q-option">Calls skip guardrails and the stream then runs about ten times faster</button>
+      <button class="q-option">Calls skip decode and the whole response costs about ten times less</button>
+      <p class="q-explain">A cache hit skips prefill entirely, so the first token lands fast — the Llama 3.3 70B benchmark shows about 80 ms on a hit versus 800 ms on a miss, and AWS claims up to 85% TTFT reduction. Reads are also up to 90% cheaper than writes. Guardrails still run; only the cache branch is skipped.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Users in Singapore see slow first tokens even on cache hits. What is a real factor?</p>
+      <button class="q-option" data-correct="true">Calls to us-east-1 add two hundred twenty milliseconds round trip</button>
+      <button class="q-option">Calls to us-west-2 add just about sixty-five milliseconds round trip</button>
+      <button class="q-option">Calls to any region add exactly zero milliseconds round trip</button>
+      <p class="q-explain">Round-trip distance is real: us-east-1 to ap-southeast-1 is roughly 220 ms, enough to dwarf even a cache hit's 80 ms first token. Cross-region inference profiles exist to route traffic near users and absorb a regional failure; the ~65 ms pair is us-east-1 to us-west-2.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Your tokens-per-minute quota trips during a long stream. Which usage counts heaviest?</p>
+      <button class="q-option" data-correct="true">Output tokens count five times heavier than input tokens do</button>
+      <button class="q-option">Input tokens count five times heavier than output tokens do</button>
+      <button class="q-option">Cached reads count five times heavier than fresh writes do</button>
+      <p class="q-explain">Bedrock meters tokens per minute, and output tokens are weighted 5:1 — every streamed token burns five units against your limit. A long answer can trip a quota that its short question never touched, which is why SDEs watch stream length, not just prompt length.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> AWS's prompt-caching deep dive, <a href="https://aws.amazon.com/blogs/machine-learning/effectively-use-prompt-caching-on-amazon-bedrock/">"Effectively use prompt caching on Amazon Bedrock"</a>. Read it for how cachePoint is priced (reads vs writes), where the 90% cost and 85% TTFT claims come from, and the mechanics of the hit-versus-miss branch this lesson walks through.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/bedrock.html">Bedrock cheat sheet</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "why is decode memory-bandwidth-bound?", "what makes a prefix cacheable?", "how do inference profiles pick a region?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0002-bedrock-catalog.html">← 0002 — What Bedrock sells</a>
+    <span class="spacer"></span>
+    <a href="0004-bedrock-rag-agents.html">0004 — RAG and agents →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

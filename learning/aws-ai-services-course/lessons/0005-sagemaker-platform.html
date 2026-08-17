@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0005 — Inside the Garage</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0005 · The platform map</p>
+    <h1>Inside the garage</h1>
+    <p class="lede">Bedrock rented you the finished model. SageMaker AI rents you the workshop — compute, tooling, and workflows to train, deploy, and operate models that are yours.</p>
+  </header>
+
+  <h2>What the garage sells</h2>
+  <p>Bedrock sold you tokens. SageMaker AI sells you the machines and the workflows: compute hours and tooling to train your own models, deploy them, and keep them operating in production. Everything orbits your code — your containers, your scripts, your data — while AWS runs the fleet underneath. Billing is per-second compute, so the meter ticks only while machines run.</p>
+
+  <p>First, the naming: SageMaker renamed to SageMaker AI, announced December 2024 and fully adopted by February 2025. Job postings, blogs, and old docs have been inconsistent ever since — treat the two names as one product.</p>
+  <p class="cite">Naming and catalog: <a href="https://docs.aws.amazon.com/next-generation-sagemaker/latest/userguide/what-is-sagemaker.html">AWS docs — What is SageMaker AI</a>.</p>
+
+  <h2>The platform map</h2>
+  <p>Think of the platform as a hub with your model code at the center and every service as a spoke: the IDE where you write the code, the fleets that train it, the endpoints that serve it, and the pipelines that govern it.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 620 400" role="img" aria-label="Platform map: Unified Studio, Training, Deployment, and Pipelines and MLOps arranged as four spokes around a central box labeled 'Your PyTorch code'" font-family="Georgia, 'Times New Roman', serif">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#B03E24"/>
+        </marker>
+      </defs>
+      <!-- spokes -->
+      <polyline points="234,80 268,80 268,164" fill="none" stroke="#B03E24" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <polyline points="386,80 352,80 352,164" fill="none" stroke="#B03E24" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <polyline points="234,320 268,320 268,236" fill="none" stroke="#B03E24" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <polyline points="386,320 352,320 352,236" fill="none" stroke="#B03E24" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <!-- center -->
+      <rect x="230" y="164" width="160" height="72" rx="10" fill="#FDEEE7" stroke="#D94F30" stroke-width="1.5"/>
+      <text x="310" y="197" font-size="16" font-weight="600" fill="#2B2620" text-anchor="middle">Your PyTorch code</text>
+      <text x="310" y="216" font-size="11" fill="#6E675A" text-anchor="middle">train · deploy · operate</text>
+      <!-- Unified Studio -->
+      <rect x="24" y="44" width="210" height="72" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="40" y="72" font-size="15" fill="#2B2620">Unified Studio</text>
+      <text x="40" y="90" font-size="11" fill="#6E675A">data · analytics · AI</text>
+      <!-- Training -->
+      <rect x="386" y="44" width="210" height="72" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="402" y="72" font-size="15" fill="#2B2620">Training</text>
+      <text x="402" y="90" font-size="11" fill="#6E675A">Jobs · HyperPod · Autopilot</text>
+      <!-- Pipelines -->
+      <rect x="24" y="284" width="210" height="72" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="40" y="312" font-size="15" fill="#2B2620">Pipelines &amp; MLOps</text>
+      <text x="40" y="330" font-size="11" fill="#6E675A">DAGs · registry · monitor</text>
+      <!-- Deployment -->
+      <rect x="386" y="284" width="210" height="72" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="402" y="312" font-size="15" fill="#2B2620">Deployment</text>
+      <text x="402" y="330" font-size="11" fill="#6E675A">endpoints · serverless</text>
+    </svg>
+    <figcaption class="figcap">Four spokes around your code: the studio where you write it, the fleets that train it, the endpoints that serve it, the pipelines that govern it.</figcaption>
+  </figure>
+
+  <h2>The catalog, one line each</h2>
+  <p>Most of the catalog fits in one sentence per service.</p>
+
+  <table>
+    <thead>
+      <tr><th>Service</th><th>What it sells</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Training Jobs</td><td>The original API: run your training container on chosen instance types.</td></tr>
+      <tr><td>HyperPod</td><td>Managed training clusters, with a hard API limit of 6,758 instances per instance group.</td></tr>
+      <tr><td>JumpStart</td><td>The model zoo: pick a model, deploy in one click.</td></tr>
+      <tr><td>Pipelines &amp; MLOps</td><td>MLOps (machine learning operations): DAGs (directed acyclic graphs) of steps, Model Registry for versions, Model Monitor for drift.</td></tr>
+      <tr><td>Autopilot</td><td>AutoML (automated machine learning): upload data, get a tuned model.</td></tr>
+      <tr><td>Feature Store, Ground Truth, Edge Manager</td><td>feature pipelines, human labeling, on-device deployment.</td></tr>
+      <tr><td>Nova Forge</td><td>Custom frontier-model training from checkpoints, ~$100K/year subscription, GA December 2025.</td></tr>
+    </tbody>
+  </table>
+  <p class="cite">Billing: <a href="https://aws.amazon.com/sagemaker/pricing/">AWS SageMaker pricing</a> — per-second compute.</p>
+
+  <h2>The IDE story</h2>
+  <p>Unified Studio, generally available since March 2025, is the new IDE: it bundles the data stack — Amazon Athena, AWS Glue, Amazon Redshift, Apache Airflow — together with analytics and AI, including both Bedrock and SageMaker. Studio Classic is maintenance-only. And Notebook Instances on Amazon Linux 2 (AL2) reach end of life on June 30, 2026 — a deadline hiding in plain sight for anyone still on them.</p>
+
+  <h2>The engine story</h2>
+  <p>One thing SageMaker deliberately does not do: build its own large language model (LLM) serving engine as the primary path. The first-party containers are the open-source engines — the first SGLang deep learning container (DLC) shipped November 2025, the first-party vLLM container followed December 2025 — and you can always bring your own container (BYOC) running vLLM, SGLang, or TensorRT-LLM.</p>
+
+  <p>AWS's engineering goes into the infrastructure around the engines: how fast model weights load, how memory gets shared, how many models pack onto one GPU. Those three are the next three lessons — cold starts, spot training, packing. This map is the furniture; those are the jobs.</p>
+  <p class="cite">Engine hosting: <a href="https://docs.aws.amazon.com/next-generation-sagemaker/latest/userguide/what-is-sagemaker.html">AWS docs — What is SageMaker AI</a>.</p>
+
+  <div class="callout">
+    <p>Read the catalog through a software development engineer (SDE) lens and each row names a daily problem: cold starts behind every scale-to-zero endpoint, spot reclaim behind every discount, packing behind every GPU bill.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">Map it</p>
+
+    <div class="q-block">
+      <p class="q-text">Job postings say "SageMaker AI" but old docs say "SageMaker". What's actually going on?</p>
+      <button class="q-option" data-correct="true">Same service, renamed to SageMaker AI in late 2024</button>
+      <button class="q-option">A new product for AI, separate from plain SageMaker</button>
+      <button class="q-option">SageMaker AI is the training side, SageMaker the rest</button>
+      <p class="q-explain">Same product — SageMaker renamed to SageMaker AI in December 2024, fully adopted by February 2025. Docs and job postings have been catching up at different speeds since, so the two names mean the same platform.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">A team wants to train and deploy their own models with their own code. What do they buy?</p>
+      <button class="q-option" data-correct="true">Buy Training Jobs, hosting, and pipelines on SageMaker AI</button>
+      <button class="q-option">Buy tokens on Bedrock for your fine-tuned model calls</button>
+      <button class="q-option">Buy UltraServers bare-metal to run your own whole stack</button>
+      <p class="q-explain">The garage: Training Jobs for the heavy work, hosting for serving, Pipelines to tie it together — all on SageMaker AI, billed per-second. Bedrock sells tokens instead of machines, and UltraServers sits one layer below the platform, for teams that build the platform itself.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">SageMaker hosts vLLM and SGLang rather than building its own serving engine. Where does its engineering actually go?</p>
+      <button class="q-option" data-correct="true">SageMaker hosts vLLM, SGLang, builds infra around them</button>
+      <button class="q-option">SageMaker builds one engine that replaces vLLM, SGLang</button>
+      <button class="q-option">SageMaker builds training stacks to replace vLLM, SGLang</button>
+      <p class="q-explain">The platform hosts the open-source engines — SGLang's container shipped November 2025, vLLM's in December 2025 — and spends its engineering on the seam around them: how fast weights load, how memory is shared, how many models pack onto one GPU. Those three seams are the next three lessons.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Your company needs custom frontier-model training from checkpoints under a subscription. Which SageMaker AI product?</p>
+      <button class="q-option" data-correct="true">Nova Forge: train a frontier model from your checkpoints</button>
+      <button class="q-option">Autopilot: runs automated ML on your own tabular data</button>
+      <button class="q-option">JumpStart: browse the model zoo, deploy with one click</button>
+      <p class="q-explain">Nova Forge — generally available December 2025, roughly $100K per year — trains custom frontier models from your checkpoints. Autopilot runs AutoML on tabular data, and JumpStart is the one-click model zoo.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> <a href="https://docs.aws.amazon.com/next-generation-sagemaker/latest/userguide/what-is-sagemaker.html">AWS docs — What is SageMaker AI</a>. Read the opening definition of the platform — the post-rename catalog, Unified Studio, and how hosting works — it's the official version of this map.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/bedrock.html">Bedrock cheat sheet</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "what exactly changed in the rename?", "where does HyperPod sit on the map?", "which services bundle into Unified Studio?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0004-bedrock-rag-agents.html">← 0004 — Bedrock RAG &amp; agents</a>
+    <span class="spacer"></span>
+    <a href="0006-sagemaker-cold-starts.html">0006 — Cold starts →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

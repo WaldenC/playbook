@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0004 — Beyond the Raw API</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0004 · Beyond the raw API</p>
+    <h1>Beyond the raw API</h1>
+    <p class="lede">Bedrock's catalog sells tokens. Real products need more: filtered output, answers grounded in your own documents, and calls to real APIs. This lesson covers the three floors AWS sells above the raw API.</p>
+  </header>
+
+  <h2>Tokens are the ground floor</h2>
+  <p>Lesson 0002's catalog is the ground floor: a model that answers. Every real application needs more before it ships. Output must be safe, answers must be grounded in documents the model never saw, and sometimes the model must call an API. AWS noticed every customer rebuilding the same plumbing and packaged it as three products: Guardrails, Knowledge Bases, and Agents.</p>
+
+  <figure class="fig">
+    <pre><code>tokens            // what lesson 0002 sells — the ground floor
+├─ Guardrails      // content, topic, PII filters — input and output side
+├─ Knowledge Bases // chunk → embed → search → ground → cite
+└─ Agents          // action groups + knowledge bases, orchestrated</code></pre>
+    <figcaption class="figcap">Above raw tokens, Bedrock sells three floors of managed plumbing.</figcaption>
+  </figure>
+
+  <h2>Guardrails: the bodyguard in the request path</h2>
+  <p>Guardrails sit in the request path itself, not as a post-processing step. Content, topic, and personally identifiable information (PII) filters run on the input side before the prompt reaches the model, and again on the output side before the response streams back. AWS claims the multimodal image filters block up to 88% of harmful multimodal content. The same policy is reusable outside Bedrock entirely: the standalone ApplyGuardrail API checks arbitrary text against your policies.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 660 150" role="img" aria-label="Request-path diagram: a prompt passes an input guardrail, reaches the model, passes an output guardrail, and becomes the response" font-family="Georgia, 'Times New Roman', serif">
+      <g>
+        <rect x="10" y="55" width="90" height="40" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="55" y="79" font-size="14" fill="#2B2620" text-anchor="middle">Prompt</text>
+      </g>
+      <g>
+        <rect x="122" y="35" width="140" height="80" rx="8" fill="#FDEEE7" stroke="#D94F30"/>
+        <text x="192" y="62" font-size="14" fill="#B03E24" text-anchor="middle">Guardrail · input</text>
+        <text x="192" y="84" font-size="11" fill="#6E675A" text-anchor="middle">content · topic · PII</text>
+      </g>
+      <g>
+        <rect x="284" y="55" width="90" height="40" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="329" y="79" font-size="14" fill="#2B2620" text-anchor="middle">Model</text>
+      </g>
+      <g>
+        <rect x="396" y="35" width="140" height="80" rx="8" fill="#FDEEE7" stroke="#D94F30"/>
+        <text x="466" y="62" font-size="14" fill="#B03E24" text-anchor="middle">Guardrail · output</text>
+        <text x="466" y="84" font-size="11" fill="#6E675A" text-anchor="middle">content · topic · PII</text>
+      </g>
+      <g>
+        <rect x="558" y="55" width="90" height="40" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="603" y="79" font-size="14" fill="#2B2620" text-anchor="middle">Response</text>
+      </g>
+      <g stroke="#D94F30" stroke-width="2">
+        <line x1="100" y1="75" x2="114" y2="75"/>
+        <polygon points="114,70 126,75 114,80" fill="#D94F30"/>
+        <line x1="262" y1="75" x2="276" y2="75"/>
+        <polygon points="276,70 288,75 276,80" fill="#D94F30"/>
+        <line x1="374" y1="75" x2="388" y2="75"/>
+        <polygon points="388,70 400,75 388,80" fill="#D94F30"/>
+        <line x1="536" y1="75" x2="550" y2="75"/>
+        <polygon points="550,70 562,75 550,80" fill="#D94F30"/>
+      </g>
+    </svg>
+    <figcaption class="figcap">Guardrails flank the model inside the request path: the input side checks the prompt before prefill, the output side checks every response before it streams back.</figcaption>
+  </figure>
+
+  <h2>Knowledge Bases: managed retrieval-augmented generation (RAG)</h2>
+  <p>RAG means the model looks up your documents instead of inventing facts. Knowledge Bases automates the whole loop: chunking documents, generating embeddings, storing vectors, and running hybrid search — keyword plus semantic. GraphRAG, general availability (GA) since March 2025, builds a knowledge graph over your data, so multi-hop questions that no single chunk answers can be traced across connected facts. Natural-language-to-SQL completes the set: ask a question, get a query against your own database.</p>
+  <p class="cite">Knowledge Bases and GraphRAG mechanics per the <a href="https://aws.amazon.com/blogs/machine-learning/announcing-general-availability-of-amazon-bedrock-knowledge-bases-graphrag-with-amazon-neptune-analytics/">AWS Machine Learning blog — GraphRAG GA announcement</a>.</p>
+
+  <h2>Agents: models that act</h2>
+  <p>Bedrock Agents gives a model action groups — tools it can call, like a flight-status API — plus knowledge bases to ground itself. AgentCore, GA since October 2025, is the managed runtime behind it: Runtime, Memory, Gateway, Identity, Observability, Code Interpreter, Managed Browser, and Evaluations. The Agent2Agent (A2A) protocol lets agents from different frameworks talk to each other, and policy gates are enforced with automated reasoning — the policy is proven, not hoped for.</p>
+
+  <h2>Dogfood: Rufus</h2>
+  <p>Amazon's own shopping assistant, Rufus, is the dogfood: 250 million customers in 2025. Its real-time router decides where every prompt goes — complex queries to Claude Sonnet, simple ones to small fast models. That is intelligent prompt routing, the same plumbing this lesson covers, proven at Amazon scale before it was sold to anyone.</p>
+
+  <div class="callout">
+    <p>Raw tokens are the ground floor. Guardrails, Knowledge Bases, and Agents are the plumbing every real app ends up rebuilding — Bedrock sells the rebuilt version.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">Which floor solves which problem?</p>
+
+    <div class="q-block">
+      <p class="q-text">A support bot leaks PII in replies and can be prompted into abusive output. Which feature filters the call on both sides?</p>
+      <button class="q-option" data-correct="true">Guardrails: filter content and PII in and out</button>
+      <button class="q-option">Knowledge Bases: ground answers in your own docs</button>
+      <button class="q-option">Prompt caching: skip the prefill on long repeats</button>
+      <p class="q-explain">Guardrails run inside the request path: content, topic, and PII filters on the input side before the prompt reaches the model, and again on the output side before the reply streams back. Knowledge Bases ground answers and caching cuts cost — neither blocks what the model sees or says.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Users expect answers grounded in your own help documents, with citations. Which feature retrieves and answers?</p>
+      <button class="q-option">Guardrails: filter topics and PII before generation</button>
+      <button class="q-option">Prompt caching: skip prefill on stable prefixes</button>
+      <button class="q-option" data-correct="true">Knowledge Bases: managed RAG with hybrid search</button>
+      <p class="q-explain">Knowledge Bases is managed retrieval-augmented generation: chunking, embeddings, vector store, hybrid search. Answers cite your documents instead of the model's priors. Guardrails filter but never retrieve, and caching speeds up repeated prefixes without adding your documents to the answer.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">A booking bot must call a real flight-status API and answer from the response. Which feature makes a model act?</p>
+      <button class="q-option">ApplyGuardrail: reuse the policy outside the path</button>
+      <button class="q-option" data-correct="true">Bedrock Agents: action groups plus knowledge bases</button>
+      <button class="q-option">Code Interpreter: runs sandboxed code for tools</button>
+      <p class="q-explain">An agent is a loop: the model decides to call an action group — your flight-status API — reads the result, and keeps going, grounded by a knowledge base. ApplyGuardrail only checks text against policy, and Code Interpreter runs code in a sandbox; neither calls your API.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">A question spans many documents — "which shipped orders arrive before Friday?" — and no single chunk answers it. Which capability?</p>
+      <button class="q-option">Prompt caching: remember the long stable prefixes</button>
+      <button class="q-option" data-correct="true">GraphRAG: multi-hop answers via a knowledge graph</button>
+      <button class="q-option">Guardrails: block harmful content in the call</button>
+      <p class="q-explain">Multi-hop questions cross several documents, so single-chunk vector search falls short. GraphRAG (GA since March 2025) builds a knowledge graph over your data and reasons across connected facts, and natural-language-to-SQL turns such questions into queries against your database.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> <a href="https://aws.amazon.com/blogs/machine-learning/announcing-general-availability-of-amazon-bedrock-knowledge-bases-graphrag-with-amazon-neptune-analytics/">"Announcing general availability of Amazon Bedrock Knowledge Bases GraphRAG" (AWS Machine Learning blog)</a>. Read it for the architecture underneath the feature list: how the knowledge graph is built over your data and queried alongside vector search — the multi-hop path this lesson's quiz touches.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/bedrock.html">Bedrock cheat sheet</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "where exactly does the output guardrail run?", "how is GraphRAG different from plain vector search?", "what does an action group look like in a request?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0003-bedrock-prompt-journey.html">← 0003 — Inside a request</a>
+    <span class="spacer"></span>
+    <a href="0005-sagemaker-platform.html">0005 — Inside the garage →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

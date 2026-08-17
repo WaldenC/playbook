@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0011 — The Five Ghosts</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0011 · The capstone</p>
+    <h1>The five ghosts</h1>
+    <p class="lede">Ten lessons, three doors, five ghosts. Every mechanism you met pins to one of five recurring problems — and the tool differs while the ghost never dies.</p>
+  </header>
+
+  <h2>The same pager, three teams</h2>
+  <p>Give an SDE from each team the same Tuesday: time-to-first-token (TTFT) percentiles and cache-hit rates in the morning standup, cluster-utilization graphs at noon, an autoscaling design review mid-afternoon, a capacity-planning meeting at four, and a pager that fires at night when a node dies. The dashboards look alike because the underlying problems are the same five. Call them the five ghosts: cold start, scale, packing, crash, scarcity.</p>
+  <p>The names hide the mechanics, so pin them down now. Cold start is the delay before a warm copy of the model exists. Scale is growing the fleet with demand — autoscaling. Packing is utilization: squeezing more tenants onto the same silicon. Crash is hardware and software failure, and fault tolerance. Scarcity is capacity and cost — getting the chips at all.</p>
+
+  <h2>The matrix</h2>
+  <p>Every mechanism from lessons 0002 to 0010 lands in exactly one cell. Read a row and you see the same ghost in three costumes.</p>
+
+  <table>
+    <tr>
+      <th>Ghost</th>
+      <th>Bedrock</th>
+      <th>SageMaker AI</th>
+      <th>UltraServers</th>
+    </tr>
+    <tr>
+      <td><strong>Cold start</strong></td>
+      <td>cachePoint prompt caching — cache hits ~80 ms vs ~800 ms TTFT</td>
+      <td>Fast Model Loader: 8 MB weight shards streamed to GPU via direct memory access (DMA), up to 15x faster</td>
+      <td>Racks are long-lived — the ghost mutates into recompilation, killed by a persistent compile cache</td>
+    </tr>
+    <tr>
+      <td><strong>Scale</strong></td>
+      <td>Cross-region inference profiles shed bursts (~65 ms between regions)</td>
+      <td>Per-model autoscaling on inference components, with cooldowns and no killing of in-flight requests</td>
+      <td>Elastic training grows and shrinks mid-run, preserving the global batch size</td>
+    </tr>
+    <tr>
+      <td><strong>Packing</strong></td>
+      <td>Multi-tenant continuous batching; key-value (KV) cache memory management</td>
+      <td>Inference components slice one GPU across models; tiered KV cache</td>
+      <td>64/144 chips must act as one — NKI kernels to saturate silicon, tokens-per-megawatt as the metric</td>
+    </tr>
+    <tr>
+      <td><strong>Crash</strong></td>
+      <td>Cross-region failover — learned the hard way on Oct 20, 2025</td>
+      <td>Spot's 2-minute warning + checkpoints every 15–30 min; checkpointless training</td>
+      <td>Neuron Distributed Training Library (NDTL) checkpointing: uptime 77.8% → 98.8%</td>
+    </tr>
+    <tr>
+      <td><strong>Scarcity</strong></td>
+      <td>1M+ Trainium chips soaking demand; batch ~50% off; cache reads up to 90% cheaper</td>
+      <td>Managed Spot up to 90% off; Flexible Training Plans reserve capacity ahead</td>
+      <td>Spot ABOVE on-demand (~$8.7 vs ~$4.8/hr) — capacity is allocation-controlled</td>
+    </tr>
+  </table>
+  <p class="cite">Mechanisms and numbers as established in lessons 0002–0010; all sources in RESOURCES.md.</p>
+
+  <p>The contrast is the lesson. Bedrock fights a ghost by routing and caching, SageMaker by scheduling, UltraServers by fusing — 64 to 144 chips made to act as one.</p>
+
+  <h2>Same ghost, different floor</h2>
+  <p>Take cold start. Bedrock's weapon is a cache: a cachePoint in the request turns an ~800 ms miss into an ~80 ms hit, a 10x TTFT gap. SageMaker's weapons are faster boots: container image caching, and Fast Model Loader streaming 8 MB weight shards straight to GPU memory via DMA, up to 15x faster. On UltraServers the rack is long-lived, so the ghost mutates into recompilation — and the fix is a persistent compile cache instead.</p>
+  <p>Scarcity inverts the pricing tell. Spot GPU capacity on SageMaker costs up to 90% less; Trainium spot costs more than on-demand, about $8.7 versus $4.8 per hour. One market sells idle capacity at a discount; the other rations every chip through allocations, multi-year deals, and Capacity Blocks.</p>
+
+  <h2>The decision rules, once more</h2>
+  <p>The three doors still close in one breath, from lesson 0001: model already exists → Bedrock; build or own the model → SageMaker AI; build the machine models run on → UltraServers. And the doors still nest — Bedrock's models run on Trainium UltraServers, and SageMaker rents the same racks.</p>
+
+  <div class="callout">
+    <p>The ghosts don't care which door you stand at. Pick the door by what you want to own; the pager finds you either way.</p>
+  </div>
+
+  <h2>The ghosts never die</h2>
+  <p>No team defeats a ghost; teams move them around. Checkpointless training trades checkpoint cost for memory — peer-to-peer state replication recovers a run in minutes instead of an hour. Managed Spot trades cost for reclamation risk: up to 90% off, provided AWS can take the machine back with a two-minute warning. Prompt caching trades memory for TTFT. Every fix is a trade, which is why the same five ghosts keep coming back — next quarter, in new costumes.</p>
+  <p>Taxi, garage, factory floor — and the five ghosts haunting all three. That's the whole map.</p>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">Name the ghost</p>
+
+    <div class="q-block">
+      <p class="q-text">Bedrock TTFT jumps from ~80 ms to ~800 ms after a customer stops reusing its system prompt. Which ghost is this?</p>
+      <button class="q-option" data-correct="true">Cold start: a cache miss sends the whole prompt through prefill</button>
+      <button class="q-option">Scale: the autoscaler cannot shed this burst into a second region</button>
+      <button class="q-option">Packing: the accelerator is now shared by far too many tenants</button>
+      <p class="q-explain">The prompt stopped matching the cached prefix, so the whole prompt re-runs prefill — the 80 vs 800 ms gap in one sentence. Routing to another region is the scale ghost's weapon, and tenant count is packing's.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Traffic doubles at noon. A SageMaker autoscaler must grow the fleet without killing in-flight requests. Which ghost is this?</p>
+      <button class="q-option" data-correct="true">Scale: autoscaling grows the fleet to meet the new demand</button>
+      <button class="q-option">Crash: spot reclaims forced a restart of every running job</button>
+      <button class="q-option">Packing: components need to fit more models on each instance</button>
+      <p class="q-explain">Scale is the ghost that grows the fleet with demand. SageMaker fights it with target-tracking autoscaling on inference components, cooldowns, and scale-in logic that never kills in-flight requests. Packing is about fitting models onto instances, not growing the fleet.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">A 100K-chip training run loses a node every few hours. Which ghost does the UltraServers team fight, and with what weapon?</p>
+      <button class="q-option" data-correct="true">Crash: NDTL checkpointing lifts the cluster uptime to 98.8%</button>
+      <button class="q-option">Scale: elastic training grows jobs when nodes become free</button>
+      <button class="q-option">Cold start: a replacement node must reload its weights</button>
+      <p class="q-explain">Node failures are routine at 100K-chip scale — Meta logged a GPU failure roughly every 3 hours during LLaMA training. NDTL checkpointing lifted measured cluster uptime from 77.8% to 98.8%. Elastic training is the scale ghost's weapon on UltraServers.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">On Trainium, the spot price sits ABOVE the on-demand price. Which ghost, and which mechanism explains it?</p>
+      <button class="q-option" data-correct="true">Scarcity: allocations ration capacity, inverting the spot market</button>
+      <button class="q-option">Crash: reclaimed machines must restart from their checkpoints</button>
+      <button class="q-option">Packing: more tenants squeeze onto each available chip</button>
+      <p class="q-explain">Spot usually sells idle capacity cheaply; when demand exceeds supply the market inverts. Trainium capacity is allocation-controlled — multi-year deals and Capacity Blocks — so leftover spot prices ABOVE on-demand, about $8.7 vs $4.8 per hour.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> AWS's own decision guide, <a href="https://docs.aws.amazon.com/decision-guides/latest/bedrock-or-sagemaker/bedrock-or-sagemaker.pdf">"Bedrock or SageMaker?" (PDF)</a>. Re-read the opening pages now that you can name the ghosts — every argument in that guide is a ghost in disguise.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/bedrock.html">Bedrock cheat sheet</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "which ghost is quota accounting?", "where does guardrail fit in the matrix?", "why does checkpointless training use memory instead of disk?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0010-ultraservers-no-cuda-faults.html">← 0010 — No CUDA faults</a>
+    <span class="spacer"></span>
+    <a href="0001-three-doors.html">Start over — 0001 →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

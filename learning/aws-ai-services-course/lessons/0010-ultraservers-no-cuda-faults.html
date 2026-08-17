@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0010 — No CUDA, Lots of Failure</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0010 · No CUDA, lots of failure</p>
+    <h1>No CUDA, lots of failure</h1>
+    <p class="lede">No CUDA. The Neuron SDK is the whole replacement stack — and at 100,000-chip scale, dying nodes stop being an event and become part of the schedule.</p>
+  </header>
+
+  <h2>The swap: no CUDA</h2>
+  <p>AWS designed the chip, the interconnect, and the network (Elastic Fabric Adapter, EFA) — so the software stack had to be rebuilt in-house too. The Neuron SDK replaces it: a compiler that maps PyTorch and JAX graphs down to Trainium's instruction set, plus NeuronX Distributed, which supplies the tensor, pipeline, data, sequence, and context parallelism libraries. On top, the engines you already know — vLLM, Hugging Face TGI, DeepSpeed, and JAX — run unchanged.</p>
+
+  <figure class="fig">
+    <pre><code>NEURON_CC_FLAGS="--target=trn2 --lnc=2" python train.py
+
+import torch_xla.core.xla_model as xm
+xm.mark_step()  # send compiled ops to the chips</code></pre>
+    <figcaption class="figcap">The whole swap in two flags: --target=trn2 pins the compile to this silicon generation; --lnc=2 assigns two link cores to chip-to-chip traffic. mark_step() is the barrier where the compiled batch actually leaves for the chips.</figcaption>
+  </figure>
+
+  <p>When the compiler can't express an operator efficiently, there's NKI — a Python DSL for writing custom kernels against Trainium's hardware. It's the last-resort layer: start with the compiler, reach for NKI only when profiling demands it.</p>
+  <p class="cite">Stack and flags from the Neuron SDK docs — <a href="https://awsdocs-neuron.readthedocs-hosted.com/en/v2.31.0/about-neuron/arch/neuron-hardware/trn2-arch.html">Trn2 architecture</a>.</p>
+
+  <h2>Faults are the normal case</h2>
+  <p>At 100,000-chip scale, hardware faults stop being news. The Neuron Distributed Training Library (NDTL) owns checkpointing, and it raised measured cluster uptime from 77.8% to 98.8% — even the after picture means part of the fleet is always recovering.</p>
+  <p>Checkpoints are tiered: fast local NVMe snapshots roughly every five minutes, with a durable S3 upload every hour. The newer "checkpointless" style replicates state peer-to-peer between live nodes, so a dead node costs minutes of recovery instead of up to an hour of replay.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 640 180" role="img" aria-label="Node-failure timeline: Node dies, Detect, Replace, Resume, with two recovery paths — checkpoint replay from S3, or checkpointless peer-to-peer replication" font-family="Georgia, 'Times New Roman', serif">
+      <!-- step boxes -->
+      <rect x="20" y="14" width="130" height="44" rx="8" fill="#FDFBF4" stroke="#D94F30"/>
+      <text x="85" y="41" font-size="14" fill="#B03E24" text-anchor="middle">Node dies</text>
+      <rect x="170" y="14" width="130" height="44" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="235" y="41" font-size="14" fill="#2B2620" text-anchor="middle">Detect</text>
+      <rect x="320" y="14" width="130" height="44" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="385" y="41" font-size="14" fill="#2B2620" text-anchor="middle">Replace</text>
+      <rect x="470" y="14" width="130" height="44" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="535" y="41" font-size="14" fill="#2B2620" text-anchor="middle">Resume</text>
+      <!-- arrows -->
+      <line x1="152" y1="36" x2="165" y2="36" stroke="#D94F30" stroke-width="2"/>
+      <polygon points="168,36 160,31.5 160,40.5" fill="#D94F30"/>
+      <line x1="302" y1="36" x2="315" y2="36" stroke="#D94F30" stroke-width="2"/>
+      <polygon points="318,36 310,31.5 310,40.5" fill="#D94F30"/>
+      <line x1="452" y1="36" x2="465" y2="36" stroke="#D94F30" stroke-width="2"/>
+      <polygon points="468,36 460,31.5 460,40.5" fill="#D94F30"/>
+      <!-- dashed connectors -->
+      <line x1="235" y1="58" x2="235" y2="100" stroke="#E6DFCE" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <line x1="235" y1="100" x2="165" y2="100" stroke="#E6DFCE" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <line x1="235" y1="100" x2="475" y2="100" stroke="#E6DFCE" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <polygon points="165,100 173,95.5 173,104.5" fill="#9A927F"/>
+      <polygon points="475,100 467,95.5 467,104.5" fill="#9A927F"/>
+      <!-- recovery path boxes -->
+      <rect x="20" y="104" width="290" height="52" rx="8" fill="#F7F3E8" stroke="#E6DFCE"/>
+      <text x="36" y="128" font-size="13" fill="#2B2620">Checkpoint path: replay from S3</text>
+      <text x="36" y="146" font-size="12" fill="#6E675A">up to an hour of replay</text>
+      <rect x="330" y="104" width="290" height="52" rx="8" fill="#FDEEE7" stroke="#E6DFCE"/>
+      <text x="346" y="128" font-size="13" fill="#2B2620">Checkpointless: peer state</text>
+      <text x="346" y="146" font-size="12" fill="#6E675A">restores in minutes</text>
+    </svg>
+    <figcaption class="figcap">A node dies at 3 am: detect, replace, resume. The checkpoint path replays from S3 and can cost up to an hour; checkpointless replication restores in minutes.</figcaption>
+  </figure>
+  <p class="cite">NDTL uptime numbers via <a href="https://www.emergentmind.com/topics/aws-trainium2">Emergent Mind's Trainium2 paper summary</a>.</p>
+
+  <h2>The inverted market</h2>
+  <p>Trainium capacity is allocation-controlled. You reserve it through Capacity Blocks — 1–64 instances, up to six months — or through multi-year private agreements, so the leftover spot pool is scarce. Third-party trackers report trn2.48xlarge at about $4.80/hr on demand and $8.60–8.72/hr spot: spot above on-demand.</p>
+  <p class="cite">Pricing per third-party trackers via <a href="https://aiwiki.ai/wiki/aws_trainium2">AI Wiki</a>. Prices are volatile and trackers disagree — re-check AWS pricing pages before relying on them.</p>
+
+  <h2>What the SDEs do all day</h2>
+  <p>Four problems own the calendar. Collectives: the chips reduce among themselves first — a hierarchical all-reduce down the chip mesh, then across nodes over EFA. Compiler engineering: operator fusion, memory planning between high-bandwidth memory (HBM) and the on-chip scratchpad, quantization, and compilation-time caches so customers don't recompile per boot.</p>
+  <p>Power and bring-up. One box draws roughly 35–40 kW, and a planned Indiana campus is over 2.2 GW — the metric of record shifted from FLOPs to tokens per megawatt. Every new architecture needs optimization passes: AWS claims GPT-OSS-120B reaches 3x throughput per chip on Trn3.</p>
+
+  <div class="callout">
+    <p>The flip: Project Rainier brought 500,000 Trainium2 chips online October 29, 2025 — mostly serving inference, with training squeezed into evening hours when inference load drops.</p>
+  </div>
+  <p class="cite">Rainier scale and the inference flip via <a href="https://www.aboutamazon.com/news/aws/aws-project-rainier-ai-trainium-chips-compute-cluster">Amazon's Project Rainier announcement</a>.</p>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">The swap, the faults, the market</p>
+
+    <div class="q-block">
+      <p class="q-text">A customer's PyTorch training code runs on Trainium unchanged. How?</p>
+      <button class="q-option" data-correct="true">The Neuron compiler maps the graph to Trainium's instruction set</button>
+      <button class="q-option">Trainium ships a CUDA driver, so existing code ports over</button>
+      <button class="q-option">The runtime virtualizes a GPU and emulates its driver stack</button>
+      <p class="q-explain">The Neuron compiler maps PyTorch and JAX graphs to Trainium's own instruction set, so models port without rewrites. NKI exists for the operators the compiler can't express well, and NeuronX Distributed supplies the parallelism libraries underneath.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Your 100K-chip run loses a node every few hours. What is the modern mitigation?</p>
+      <button class="q-option" data-correct="true">Run tiered NVMe and S3 checkpoints, then peer replication</button>
+      <button class="q-option">Restart the entire run from scratch after every failure</button>
+      <button class="q-option">Keep one single checkpoint, saved at the very end</button>
+      <p class="q-explain">Fault tolerance is tiered: fast local NVMe snapshots every few minutes, a durable S3 upload every hour, and since 2025 checkpointless peer-to-peer state replication that recovers in minutes instead of up to an hour.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Spot price for Trainium runs above on-demand price. What does that tell you?</p>
+      <button class="q-option" data-correct="true">Allocated capacity is scarce, so the leftover spot market inverts</button>
+      <button class="q-option">AWS's spot pricing algorithm is broken and needs a correction</button>
+      <button class="q-option">On-demand prices are inflated, so nobody should ever buy spot</button>
+      <p class="q-explain">Capacity Blocks and multi-year agreements lock up most Trainium capacity, so the leftover spot pool is scarce enough to price above on-demand. Read the market: scarcity inverts the usual curve.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Project Rainier launched as a training cluster. By late 2025, what was it mostly doing?</p>
+      <button class="q-option" data-correct="true">Serving inference most of the day, training in the evenings</button>
+      <button class="q-option">Training frontier models around the clock at full capacity too</button>
+      <button class="q-option">Idle while waiting for the compiler team to catch up</button>
+      <p class="q-explain">Rainier came online October 29, 2025 with roughly 500,000 Trainium2 chips, and most of them serve inference — training squeezes into the evening hours when inference load drops.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> <a href="https://www.emergentmind.com/topics/aws-trainium2">Emergent Mind — AWS Trainium2 paper summary</a>. Read the fault-tolerance section: the NDTL cluster-uptime numbers (77.8% → 98.8%) are summarized there from the underlying paper.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/bedrock.html">Bedrock cheat sheet</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a> · <a href="../reference/ultraservers.html">UltraServers cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Anything fuzzy? Ask the agent — "why does allocation control push spot above on-demand?", "what exactly does the Neuron compiler do to a PyTorch graph?", "how does checkpointless recovery differ from plain checkpointing?" No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0009-ultraservers-box.html">← 0009 — Inside the box</a>
+    <span class="spacer"></span>
+    <a href="0011-five-ghosts.html">0011 — Five ghosts →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

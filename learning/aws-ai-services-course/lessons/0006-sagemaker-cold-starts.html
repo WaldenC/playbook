@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 0006 — Why Your First Request Crawls</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<article class="lesson">
+  <header class="lesson-header">
+    <p class="eyebrow">Lesson 0006 · Cold starts</p>
+    <h1>Why your first request crawls</h1>
+    <p class="lede">A serverless SageMaker endpoint scales to zero when idle, and the first request that wakes it pays the full startup bill: usually 6–45 seconds. The bill is the cold start — the #1 daily problem for the software development engineers (SDEs) who run SageMaker inference.</p>
+  </header>
+
+  <h2>The scale-to-zero bargain</h2>
+  <p>Serverless inference scales to zero: with no traffic, the endpoint holds zero running containers. The first call triggers a full bring-up, and the caller waits through it — typically 6–45 s.</p>
+  <p>That wait is the platform's own doing: idle means zero cost, but the wake-up is not free. The SDE's job is deciding which of the three fixes below pays for the traffic shape.</p>
+  <p class="cite">SageMaker AI user guide — <a href="https://docs.aws.amazon.com/next-generation-sagemaker/latest/userguide/what-is-sagemaker.html">serverless inference and provisioned concurrency</a>.</p>
+
+  <h2>Four stages, one bill</h2>
+  <p>A cold call runs a four-stage chain. The container boots, pulls its image — 10 GB and up, over the network — loads the model weights into GPU memory, and only then emits the first token. For Llama-3.1-70B, the weight load alone runs ~400 s.</p>
+
+  <figure class="fig">
+    <svg viewBox="0 0 700 262" role="img" aria-label="Timeline of a cold start: four stages — container boot, image pull, weight load, first token — with container image caching pinned to the image pull, Fast Model Loader pinned to the weight load, and a provisioned-concurrency band above all four stages" font-family="Georgia, 'Times New Roman', serif">
+      <!-- provisioned concurrency band: skips the whole chain -->
+      <rect x="20" y="16" width="660" height="36" rx="18" fill="#FDEEE7" stroke="#D94F30"/>
+      <text x="350" y="39" font-size="13" fill="#B03E24" text-anchor="middle">Provisioned concurrency — warm copies skip the whole chain (max 200 concurrent)</text>
+      <!-- stage boxes -->
+      <g>
+        <rect x="20" y="72" width="150" height="62" rx="8" fill="#FDFBF4" stroke="#E6DFCE"/>
+        <text x="95" y="98" font-size="15" font-weight="600" fill="#2B2620" text-anchor="middle">Container boot</text>
+        <text x="95" y="120" font-size="11.5" fill="#6E675A" text-anchor="middle">runtime processes start</text>
+      </g>
+      <g>
+        <rect x="190" y="72" width="150" height="62" rx="8" fill="#FDFBF4" stroke="#E6DFCE"/>
+        <text x="265" y="98" font-size="15" font-weight="600" fill="#2B2620" text-anchor="middle">Image pull</text>
+        <text x="265" y="120" font-size="11.5" fill="#6E675A" text-anchor="middle">10 GB+ over the network</text>
+      </g>
+      <g>
+        <rect x="360" y="72" width="150" height="62" rx="8" fill="#FDFBF4" stroke="#E6DFCE"/>
+        <text x="435" y="98" font-size="15" font-weight="600" fill="#2B2620" text-anchor="middle">Weight load</text>
+        <text x="435" y="120" font-size="11.5" fill="#6E675A" text-anchor="middle">into GPU memory</text>
+      </g>
+      <g>
+        <rect x="530" y="72" width="150" height="62" rx="8" fill="#FDFBF4" stroke="#E6DFCE"/>
+        <text x="605" y="98" font-size="15" font-weight="600" fill="#2B2620" text-anchor="middle">First token</text>
+        <text x="605" y="120" font-size="11.5" fill="#6E675A" text-anchor="middle">the chain's end</text>
+      </g>
+      <!-- arrows -->
+      <g stroke="#B03E24" stroke-width="2">
+        <line x1="170" y1="103" x2="177" y2="103"/>
+        <line x1="340" y1="103" x2="347" y2="103"/>
+        <line x1="510" y1="103" x2="517" y2="103"/>
+      </g>
+      <g fill="#B03E24">
+        <polygon points="177,98 186,103 177,108"/>
+        <polygon points="347,98 356,103 347,108"/>
+        <polygon points="517,98 526,103 517,108"/>
+      </g>
+      <!-- mitigation badges -->
+      <g>
+        <rect x="20" y="176" width="150" height="74" rx="6" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="95" y="198" font-size="12" font-weight="600" fill="#6E675A" text-anchor="middle">Boot</text>
+        <text x="95" y="214" font-size="10.5" fill="#6E675A" text-anchor="middle">no shortcut — it must</text>
+        <text x="95" y="228" font-size="10.5" fill="#6E675A" text-anchor="middle">happen first</text>
+      </g>
+      <g>
+        <rect x="190" y="176" width="150" height="74" rx="6" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="265" y="198" font-size="12" font-weight="600" fill="#B03E24" text-anchor="middle">Container image caching</text>
+        <text x="265" y="214" font-size="10.5" fill="#6E675A" text-anchor="middle">June 2026 · up to 2x</text>
+        <text x="265" y="228" font-size="10.5" fill="#6E675A" text-anchor="middle">scale-out — kills re-pull</text>
+      </g>
+      <g>
+        <rect x="360" y="176" width="150" height="74" rx="6" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="435" y="198" font-size="12" font-weight="600" fill="#B03E24" text-anchor="middle">Fast Model Loader</text>
+        <text x="435" y="214" font-size="10.5" fill="#6E675A" text-anchor="middle">8 MB shards · S3 → GPU</text>
+        <text x="435" y="228" font-size="10.5" fill="#6E675A" text-anchor="middle">via DMA · up to 15x</text>
+      </g>
+      <g>
+        <rect x="530" y="176" width="150" height="74" rx="6" fill="#F7F3E8" stroke="#E6DFCE"/>
+        <text x="605" y="198" font-size="12" font-weight="600" fill="#6E675A" text-anchor="middle">First token</text>
+        <text x="605" y="214" font-size="10.5" fill="#6E675A" text-anchor="middle">cold chain's total bill:</text>
+        <text x="605" y="228" font-size="10.5" fill="#6E675A" text-anchor="middle">~6–45 s without fixes</text>
+      </g>
+    </svg>
+    <figcaption class="figcap">Four stages, left to right. The two heaviest each have a fix pinned to them — image caching on the pull, Fast Model Loader on the weights. Provisioned concurrency sidesteps the whole chain from above.</figcaption>
+  </figure>
+
+  <p>Each fix AWS built targets one stage rather than the whole chain, so diagnosis comes first: is the wait in the pull, in the weights, or everywhere?</p>
+
+  <h2>Three fixes, three targets</h2>
+  <p>Three remedies exist, each aimed at a different stage.</p>
+
+  <h3>Provisioned concurrency — skip the whole chain</h3>
+  <p>Provisioned concurrency keeps warmed copies of the endpoint running ahead of time, so a request lands on a live container and never touches the chain. You pay for those copies whether or not a request arrives, and the cap is 200 concurrent invocations.</p>
+
+  <h3>Container image caching — kill the re-pull</h3>
+  <p>Since June 2026, SageMaker AI caches container images on the host, so a scaling event pulls once instead of re-downloading 10 GB+ per instance. End-to-end scale-out runs up to 2x faster.</p>
+
+  <h3>Fast Model Loader — stream the weights</h3>
+  <p>Fast Model Loader (2024) pre-shards weights into 8 MB chunks and streams them from S3 straight into GPU memory. DMA — direct memory access — lets the accelerator pull bytes straight into its own memory: no disk, no CPU staging. Chunked streaming means the first weights land in memory while the rest are still in flight. Loading runs up to 15x faster: Llama-3.1-70B scale-out drops from ~407 s to ~335 s, and autoscaling is ~58% faster.</p>
+  <p class="cite">Sources: <a href="https://aws.amazon.com/cn/blogs/machine-learning/introducing-fast-model-loader-in-sagemaker-inference-accelerate-autoscaling-for-your-large-language-models-llms-part-1/">Fast Model Loader (AWS ML blog, 2024)</a> · <a href="https://aws.amazon.com/cn/about-aws/whats-new/2026/06/sagemakerai-inf-scale-out-time/">container image caching (AWS what's new, June 2026)</a>.</p>
+
+  <div class="callout">
+    <p>The three fixes compose. Provisioned concurrency means you never cold start at all; when you do, image caching and Fast Model Loader shorten the two heaviest stages. Boot has no fix — that is why warm copies exist.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="quiz" data-quiz>
+    <p class="quiz-title">Which fix, which stage?</p>
+
+    <div class="q-block">
+      <p class="q-text">An endpoint scales to zero and steady customers eat a 30 s first call. Which fix makes requests skip the whole chain?</p>
+      <button class="q-option" data-correct="true">Keeping warm copies that take the request whole</button>
+      <button class="q-option">Caching the image so the re-pull never happens</button>
+      <button class="q-option">Streaming model weights faster into the GPU memory</button>
+      <p class="q-explain">Provisioned concurrency keeps warmed copies running, so a request lands on a live container and never boots, pulls, or loads. The trade: you pay for those copies whether or not a request arrives, and the cap is 200 concurrent invocations.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Container image caching attacks which stage of the cold start?</p>
+      <button class="q-option" data-correct="true">Image pull — the whole image stays cached per host</button>
+      <button class="q-option">Weight load — shards stream from S3 into GPU memory</button>
+      <button class="q-option">All stages — a warm copy skips the startup chain</button>
+      <p class="q-explain">Image caching lives on the host, so a fresh instance reads the image locally instead of re-pulling 10 GB+ from the registry. Since June 2026 it runs end-to-end scale-out up to 2x faster.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">Fast Model Loader attacks which stage of the cold start?</p>
+      <button class="q-option" data-correct="true">Weight load — the shards stream from S3 into memory</button>
+      <button class="q-option">Image pull — a ten gigabyte image stays fully cached</button>
+      <button class="q-option">All stages — warm copies skip over the entire chain</button>
+      <p class="q-explain">Fast Model Loader pre-shards weights into 8 MB chunks and streams them S3 → GPU memory via DMA, bypassing disk — up to 15x faster loading. Llama-3.1-70B scale-out drops from ~407 s to ~335 s, and autoscaling is ~58% faster.</p>
+    </div>
+
+    <div class="q-block">
+      <p class="q-text">What does Fast Model Loader do differently from the other two fixes?</p>
+      <button class="q-option" data-correct="true">It pre-shards weights into 8 MB chunks, streams via DMA</button>
+      <button class="q-option">It keeps warm copies ready so requests never cold start</button>
+      <button class="q-option">It caches the container image so the pull is skipped</button>
+      <p class="q-explain">The distinguishing move is the shards: weights are cut into 8 MB chunks and streamed straight from S3 into GPU memory, so the model never lands on local disk. Warm copies and image caching attack the same cold start from other stages.</p>
+    </div>
+  </div>
+
+  <p class="primary-source"><strong>Primary source:</strong> AWS ML blog, <a href="https://aws.amazon.com/cn/blogs/machine-learning/introducing-fast-model-loader-in-sagemaker-inference-accelerate-autoscaling-for-your-large-language-models-llms-part-1/">"Introducing Fast Model Loader in SageMaker Inference"</a>. Read the opening half — it walks the exact four-stage chain this lesson sketched and shows the pre- and post-Fast Model Loader numbers for Llama-3.1-70B.</p>
+
+  <p class="cite">Related reference: <a href="../reference/glossary.html">glossary</a> · <a href="../reference/sagemaker.html">SageMaker cheat sheet</a></p>
+
+  <div class="ask-reminder">
+    Cold starts sit at the seam between "you deploy" and "AWS runs". Ask the agent why 8 MB shards beat one giant file, or what happens when a burst outruns the 200-copy cap. No question is too small.
+  </div>
+
+  <nav class="prevnext">
+    <a href="0005-sagemaker-platform.html">← 0005 — SageMaker platform</a>
+    <span class="spacer"></span>
+    <a href="0007-sagemaker-spot-faults.html">0007 — Spot &amp; faults →</a>
+  </nav>
+</article>
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
