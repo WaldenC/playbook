@@ -1,5 +1,7 @@
 # Playbook
 
+*Motivation follows action more than it precedes it.*
+
 A collection of agent skills — reusable playbooks that teach any coding agent how to perform specific tasks. Agent-agnostic, model-agnostic, framework-agnostic.
 
 Each skill is a self-contained markdown file that an agent reads as its operating manual: what to do, what to preserve, what never to touch.
