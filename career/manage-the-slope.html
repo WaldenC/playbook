@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manage the Slope — career growth dashboard</title>
+<meta name="description" content="Diagram-driven thinking tool for SDE1 → SDE2 → Tenured SDE2 → next level. Makes scope, ownership, impact and learning curve visible.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f46e5'/%3E%3Cpath d='M6 23 L14 15 L19 18 L26 9' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f5f6f8; --surface:#fff; --surface-2:#fafbfc; --surface-3:#f2f4f7;
+  --border:#e5e7eb; --border-strong:#d3d7de;
+  --text:#0f172a; --text-2:#475569; --muted:#6b7280; --faint:#9aa1ac;
+  --accent:#4f46e5; --accent-soft:#eef2ff; --accent-line:#c7d2fe;
+  --good:#047857; --good-soft:#ecfdf5; --good-line:#a7f3d0;
+  --warn:#b45309; --warn-soft:#fffbeb; --warn-line:#fde68a;
+  --bad:#be123c; --bad-soft:#fff1f2; --bad-line:#fecdd3;
+  --teal:#0f766e; --teal-soft:#f0fdfa;
+  --sh-1:0 1px 2px rgba(15,23,42,.05);
+  --sh-2:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.16);
+  --sh-3:0 2px 4px rgba(15,23,42,.04), 0 18px 40px -18px rgba(15,23,42,.24);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;line-height:1.25;letter-spacing:-.015em;font-weight:650}
+p{margin:0}
+ul,ol{margin:0;padding:0;list-style:none}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+svg{max-width:100%}
+
+.wrap{max-width:1140px;margin:0 auto;padding:0 22px}
+section{padding:44px 0;scroll-margin-top:64px;border-top:1px solid var(--border)}
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.sec-num{flex:0 0 auto;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent);
+  background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:8px;padding:3px 8px;letter-spacing:.04em}
+.sec-title{font-size:clamp(18px,2.2vw,23px);flex:1}
+.sec-toggle{flex:0 0 auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  width:30px;height:30px;display:grid;place-items:center;cursor:pointer;color:var(--muted);transition:.15s}
+.sec-toggle:hover{background:var(--surface-3);border-color:var(--border-strong);color:var(--text)}
+.sec-toggle svg{transition:transform .25s ease}
+section[data-collapsed="true"] .sec-toggle svg{transform:rotate(-90deg)}
+section[data-collapsed="true"] > .wrap > .sec-body{display:none}
+
+/* nav */
+.topbar{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:9px 22px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:13px;white-space:nowrap}
+.brand .dot{width:20px;height:20px;border-radius:6px;background:linear-gradient(140deg,var(--accent),#8b5cf6);display:grid;place-items:center}
+.nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-left:auto;min-width:0}
+.nav::-webkit-scrollbar{display:none}
+.nav a{padding:6px 9px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:12.5px;white-space:nowrap;transition:.15s}
+.nav a:hover{background:var(--surface-3);color:var(--text)}
+.nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+/* primitives */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--sh-1)}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:900px){.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+.kicker{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;
+  font-weight:650;border:1px solid var(--border);background:var(--surface-3);color:var(--text-2);white-space:nowrap}
+.pill.good{background:var(--good-soft);border-color:var(--good-line);color:var(--good)}
+.pill.warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn)}
+.pill.acc{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--surface-3);
+  border:1px solid var(--border);font-size:12px;color:var(--text-2);cursor:default;transition:.15s}
+.chip:hover{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+.chip::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--border-strong);flex:0 0 auto}
+.chip.good{background:var(--good-soft);border-color:var(--good-line);color:var(--good)}
+.chip.good::before{background:var(--good-line)}
+.chip.bad{background:var(--bad-soft);border-color:var(--bad-line);color:var(--bad)}
+.chip.bad::before{background:var(--bad-line)}
+.minico{width:22px;height:22px;border-radius:6px;background:var(--accent-soft);color:var(--accent);display:grid;
+  place-items:center;flex:0 0 auto;cursor:help}
+.minico svg{display:block}
+
+/* tooltips — display:none when idle, so hidden tips never widen the page */
+[data-tip]{position:relative;cursor:help;border-bottom:1px dotted var(--border-strong)}
+[data-tip]::after{content:attr(data-tip);display:none;position:absolute;left:50%;bottom:calc(100% + 8px);
+  background:#111827;color:#f8fafc;font-size:12px;font-weight:400;line-height:1.45;letter-spacing:0;
+  text-transform:none;text-align:left;padding:9px 11px;border-radius:8px;width:max-content;max-width:min(280px,78vw);
+  box-shadow:var(--sh-3);z-index:90;pointer-events:none}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{display:block;animation:tipIn .14s ease}
+@keyframes tipIn{from{opacity:0;transform:translate(-50%,5px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+/* hero */
+.hero{padding:42px 0 38px;border-top:0;background:
+  radial-gradient(900px 380px at 12% -8%,#e6e9ff 0,rgba(230,233,255,0) 62%),
+  radial-gradient(760px 340px at 92% 4%,#e6fbf6 0,rgba(230,251,246,0) 60%)}
+.hero h1{font-size:clamp(30px,4.6vw,50px);letter-spacing:-.03em;font-weight:700;max-width:22ch}
+.lede{font-size:clamp(15px,1.7vw,17.5px);color:var(--text-2);margin-top:12px;max-width:60ch}
+
+.rail{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:24px}
+.rail-step{flex:1 1 130px;min-width:116px;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:11px 13px;box-shadow:var(--sh-1);position:relative;overflow:hidden}
+.rail-step::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--border-strong)}
+.rail-step.s1::before{background:#a5b4fc}.rail-step.s2::before{background:#818cf8}
+.rail-step.s3::before{background:#fbbf24}.rail-step.s4::before{background:#34d399}
+.rail-name{font-weight:650;font-size:13.5px}
+.rail-arrow{color:var(--border-strong);font-size:15px;flex:0 0 auto}
+@media(max-width:720px){.rail-arrow{display:none}.rail-step{flex:1 1 44%}}
+
+.dims{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+@media(max-width:620px){.dims{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.dim{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 13px;box-shadow:var(--sh-1);
+  display:flex;align-items:center;gap:10px;transition:.18s;cursor:help}
+.dim:hover{transform:translateY(-2px);box-shadow:var(--sh-2);border-color:var(--accent-line)}
+.dim .ico{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);flex:0 0 auto}
+.dim h3{font-size:13px}
+
+/* trajectory matrix */
+.mx2{display:grid;grid-template-columns:minmax(148px,1.5fr) repeat(5,minmax(0,1fr));gap:6px;margin-top:22px;
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--sh-1)}
+.mx2 .ch{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.05em;text-align:center;
+  text-transform:uppercase;align-self:end;padding-bottom:2px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.mx2 .ch .minico{text-transform:none}
+.mx2 .rl{display:flex;flex-direction:column;gap:5px;padding:9px 10px;border-radius:10px;background:var(--surface-3);justify-content:center}
+.mx2 .rl .top{display:flex;align-items:center;gap:7px;justify-content:space-between}
+.mx2 .rl h4{font-size:13px}
+.mx2 .rl svg{width:100%;height:26px;display:block}
+.mx2 .cell{display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:14px;background:var(--surface-3);
+  border-radius:10px;padding:12px 0}
+.mx2 .row-flat .cell{background:#f4f5f7}
+.mx2 .row-steep .cell{background:#f1fdf8}
+.mx2 .row-steep .rl{background:var(--good-soft);border:1px solid var(--good-line)}
+.v-flat{color:var(--faint)}.v-up{color:var(--warn)}.v-up2{color:var(--good)}
+
+.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+@media(max-width:720px){.split{grid-template-columns:minmax(0,1fr)}}
+.split-card{background:rgba(255,255,255,.78);border:1px solid var(--border);border-radius:12px;padding:12px 15px;
+  display:flex;align-items:center;gap:10px;font-size:12.5px}
+.split-card b{color:var(--warn);font-weight:650}
+.split-card i{color:var(--bad);font-weight:650;font-style:normal}
+.split-card .neq{font-family:var(--mono);color:var(--faint);font-weight:400}
+
+/* before / after */
+.ba{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;background:var(--surface);margin-top:14px}
+@media(max-width:620px){.ba{grid-template-columns:minmax(0,1fr)}}
+.ba-col{padding:18px}
+.ba-col+.ba-col{border-left:1px solid var(--border)}
+@media(max-width:620px){.ba-col+.ba-col{border-left:0;border-top:1px solid var(--border)}}
+.ba-col.before{background:linear-gradient(180deg,#f8faff,#fff)}
+.ba-col.after{background:linear-gradient(180deg,#fffdf5,#fff)}
+.step{display:flex;gap:11px;align-items:center;padding-bottom:12px;position:relative;font-size:13px;font-weight:600}
+.step:not(:last-child)::before{content:"";position:absolute;left:5.5px;top:16px;bottom:0;width:1px;background:var(--border)}
+.step .marker{flex:0 0 auto;width:12px;height:12px;border-radius:50%;border:2px solid var(--surface);
+  background:var(--border-strong);box-shadow:0 0 0 1px var(--border);z-index:1}
+.before .marker{background:#a5b4fc}.after .marker{background:#fbbf24}
+.formula{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding:13px 16px;background:var(--surface);
+  border:1px solid var(--border);border-radius:12px;font-size:14px;font-weight:650}
+.formula .eq{font-family:var(--mono);color:var(--faint);font-weight:400}
+
+/* tiers */
+.tier{display:flex;flex-direction:column;gap:13px;background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:18px;box-shadow:var(--sh-1)}
+.tier.a{border-top:3px solid #38bdf8}
+.tier.b{border-top:3px solid #10b981;background:linear-gradient(180deg,#f7fefb,#fff)}
+.tier.c{border-top:3px solid #f43f5e;background:linear-gradient(180deg,#fff7f8,#fff)}
+.tier h3{font-size:15px}
+.tier-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lvl{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.08em}
+.lvl .on{color:var(--accent)}.lvl .off{color:var(--border-strong)}
+.tier.a .lvl .on{color:#0ea5e9}.tier.b .lvl .on{color:var(--good)}.tier.c .lvl .on{color:var(--bad)}
+.path{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px}
+.path .node{background:var(--surface-3);border:1px solid var(--border);border-radius:8px;padding:4px 8px;color:var(--text-2);white-space:nowrap}
+.path .ar{color:var(--border-strong);font-size:13px}
+.path .node.end{border-color:var(--good-line);background:var(--good-soft);color:var(--good);font-weight:650}
+.path .node.stop{border-color:var(--bad-line);background:var(--bad-soft);color:var(--bad);font-weight:650}
+.path .node.loop{border-color:var(--warn-line);background:var(--warn-soft);color:var(--warn);font-weight:650}
+
+/* comparison matrix */
+.mx-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:var(--sh-1)}
+table.mx{width:100%;border-collapse:collapse;min-width:520px}
+table.mx th,table.mx td{padding:10px 14px;text-align:center;border-bottom:1px solid var(--border);font-size:12.5px}
+table.mx thead th{background:var(--surface-2);font-size:13.5px;font-weight:650}
+table.mx thead th:first-child,table.mx tbody th{text-align:left}
+table.mx th.stay{box-shadow:inset 0 3px 0 #818cf8}
+table.mx th.transfer{box-shadow:inset 0 3px 0 #38bdf8}
+table.mx th.move{box-shadow:inset 0 3px 0 #fb923c}
+table.mx tbody th{font-weight:550;color:var(--text-2);background:var(--surface-2)}
+table.mx tbody tr:hover td,table.mx tbody tr:hover th{background:var(--accent-soft)}
+table.mx tbody tr:last-child th,table.mx tbody tr:last-child td{border-bottom:0}
+.sym{font-family:var(--mono);font-weight:700;font-size:13px}
+.sym.yes{color:var(--good)}.sym.mid{color:var(--warn)}.sym.no{color:var(--bad)}.sym.q{color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:11.5px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:6px}
+.qrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+@media(max-width:720px){.qrow{grid-template-columns:minmax(0,1fr)}}
+.qcell{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:12px;padding:11px 14px;
+  font-size:12.5px;font-weight:600;color:#3730a3;text-align:center;cursor:help}
+
+/* capital */
+.equation{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.eq-term{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 13px;font-weight:600;
+  font-size:12.5px;box-shadow:var(--sh-1);transition:.16s;cursor:default}
+.eq-term:hover{border-color:var(--accent-line);transform:translateY(-2px);box-shadow:var(--sh-2)}
+.eq-op{font-family:var(--mono);color:var(--faint);font-size:15px;font-weight:600}
+
+/* lab */
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);padding:7px 12px;
+  border-radius:8px;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;transition:.15s;box-shadow:var(--sh-1)}
+.btn:hover{background:var(--surface-3);border-color:var(--border-strong);color:var(--text)}
+.btn:active{transform:translateY(1px)}
+.lab-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.lab2{display:grid;grid-template-columns:minmax(140px,168px) minmax(0,1fr) minmax(0,1fr);
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-1);overflow:hidden}
+.lab2 > .hd{padding:11px 16px;background:var(--surface-2);border-bottom:1px solid var(--border);
+  font-size:12.5px;font-weight:650;display:flex;align-items:center;gap:8px;cursor:help}
+.lab2 > .hd.corner{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.lab2 > .hd .swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.lab2 > .hd.a{color:var(--accent)}.lab2 > .hd.a .swatch{background:var(--accent)}
+.lab2 > .hd.b{color:var(--teal)}.lab2 > .hd.b .swatch{background:#0d9488}
+.lab2 > .lbl{padding:12px 16px;font-size:12.5px;font-weight:600;color:var(--text-2);display:flex;align-items:center;
+  border-bottom:1px solid var(--border);background:var(--surface-2);cursor:help}
+.lab2 > .cell{padding:9px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.lab2 > .cell:last-child,.lab2 > .lbl:nth-last-child(3),.lab2 > .cell:nth-last-child(2){border-bottom:0}
+.slider-val{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;min-width:24px;
+  text-align:center;flex:0 0 auto}
+.slider-val.a{color:var(--accent);border:1px solid var(--accent-line);background:var(--accent-soft)}
+.slider-val.b{color:var(--teal);border:1px solid #99f6e4;background:var(--teal-soft)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:20px;background:transparent;cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:5px;border-radius:3px;background:var(--surface-3);border:1px solid var(--border)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;
+  margin-top:-6.5px;border:2px solid var(--accent);box-shadow:0 1px 3px rgba(15,23,42,.2);transition:transform .12s}
+input[type=range].b::-webkit-slider-thumb{border-color:#0d9488}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.12)}
+input[type=range]::-moz-range-track{height:5px;border-radius:3px;background:var(--surface-3);border:1px solid var(--border)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--accent)}
+input[type=range].b::-moz-range-thumb{border-color:#0d9488}
+@media(max-width:700px){
+  .lab2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .lab2 > .hd.corner{display:none}
+  .lab2 > .lbl{grid-column:1/-1;border-bottom:0;padding-bottom:4px}
+  .lab2 > .cell:nth-last-child(2){border-bottom:1px solid var(--border)}
+  .lab2 > .cell:last-child{border-bottom:1px solid var(--border)}
+  .lab2 > .lbl:nth-last-child(3){border-bottom:0}
+}
+.readout{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--sh-1);padding:18px;margin-top:14px}
+.readout-grid{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:24px;align-items:start}
+@media(max-width:820px){.readout-grid{grid-template-columns:minmax(0,1fr)}}
+.chart-wrap{display:flex;flex-direction:column;align-items:center}
+.chart-wrap svg{width:100%;max-width:380px;height:auto}
+.legend-c{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;justify-content:center;font-size:11.5px;color:var(--text-2)}
+.legend-c span{display:flex;align-items:center;gap:6px}
+.legend-c i{width:11px;height:11px;border-radius:3px;display:block}
+.bars{display:flex;flex-direction:column;gap:11px}
+.bar-row{display:flex;flex-direction:column;gap:4px}
+.bar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:600}
+.delta{font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:8px;
+  background:var(--surface-3);border:1px solid var(--border);color:var(--text-2)}
+.bar-line{display:flex;align-items:center;gap:8px}
+.bar-track{flex:1;height:8px;border-radius:5px;background:var(--surface-3);border:1px solid var(--border);overflow:hidden}
+.bar-fill{display:block;height:100%;border-radius:5px 0 0 5px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+.bar-fill.cur{background:linear-gradient(90deg,#818cf8,var(--accent))}
+.bar-fill.pot{background:linear-gradient(90deg,#5eead4,#0d9488)}
+.bar-tag{font-family:var(--mono);font-size:10px;color:var(--faint);width:26px;flex:0 0 auto;text-align:right}
+
+/* checklist */
+.q-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.q-progress{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:9px;margin-left:auto;font-family:var(--mono)}
+.track{width:110px;height:6px;border-radius:3px;background:var(--surface-3);border:1px solid var(--border);overflow:hidden}
+.fill{display:block;height:100%;background:var(--accent);transition:width .3s}
+.q-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+@media(max-width:720px){.q-list{grid-template-columns:minmax(0,1fr)}}
+.q-row{display:flex;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:11px 12px;box-shadow:var(--sh-1);transition:.18s;align-items:flex-start}
+.q-row:hover{border-color:var(--border-strong)}
+.q-row.done{border-color:var(--good-line);background:linear-gradient(180deg,#fbfffd,#fff)}
+.q-box{flex:0 0 auto;position:relative;margin-top:1px}
+.q-box input{position:absolute;inset:0;opacity:0;width:19px;height:19px;cursor:pointer;margin:0}
+.tick{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--border-strong);background:var(--surface);
+  display:grid;place-items:center;transition:.15s;color:transparent}
+.q-box input:checked+.tick{background:var(--good);border-color:var(--good);color:#fff}
+.q-box input:focus-visible+.tick{outline:2px solid var(--accent);outline-offset:2px}
+.q-body{flex:1;min-width:0}
+.q-text{font-size:12.5px;font-weight:600;padding:2px 5px;margin-left:-5px;border-radius:5px;outline:none;transition:.15s;
+  display:inline-block;max-width:100%}
+.q-text:hover{background:var(--surface-3)}
+.q-text:focus{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.q-note{width:100%;margin-top:7px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);
+  padding:7px 9px;font-family:var(--sans);font-size:12px;color:var(--text);line-height:1.45;resize:vertical;min-height:30px;
+  transition:.15s;outline:none;display:block}
+.q-note:hover{background:var(--surface-3)}
+.q-note:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.q-del{flex:0 0 auto;background:transparent;border:1px solid transparent;color:var(--faint);width:24px;height:24px;
+  border-radius:8px;cursor:pointer;font-size:14px;line-height:1;display:grid;place-items:center;transition:.15s;opacity:0}
+.q-row:hover .q-del,.q-del:focus-visible{opacity:1}
+.q-del:hover{color:var(--bad);background:var(--bad-soft);border-color:var(--bad-line)}
+
+/* framework */
+.tree{display:flex;flex-direction:column;align-items:center}
+.tree-node{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:9px 15px;font-size:12.5px;
+  font-weight:600;box-shadow:var(--sh-1);text-align:center;max-width:100%}
+.tree-node.start{background:#111827;color:#fff;border-color:#111827}
+.tree-node.q{border-left:3px solid var(--accent);font-weight:550}
+.tree-conn{width:1px;height:13px;background:var(--border-strong)}
+.tree-fork{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%}
+@media(max-width:620px){.tree-fork{grid-template-columns:minmax(0,1fr)}}
+.fork-branch{display:flex;flex-direction:column;align-items:center;gap:8px}
+.ev-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+@media(max-width:720px){.ev-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:460px){.ev-grid{grid-template-columns:minmax(0,1fr)}}
+.ev{display:flex;gap:9px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:9px 11px;font-size:12px;color:var(--text-2);cursor:pointer;transition:.15s;box-shadow:var(--sh-1)}
+.ev:hover{border-color:var(--border-strong)}
+.ev:has(input:checked){border-color:var(--good-line);background:var(--good-soft);color:var(--good);font-weight:600}
+
+/* mindset */
+.principles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media(max-width:900px){.principles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.principles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pr{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 12px;box-shadow:var(--sh-1);
+  display:flex;flex-direction:column;gap:8px;transition:.18s}
+.pr:hover{transform:translateY(-2px);box-shadow:var(--sh-2);border-color:var(--accent-line)}
+.pr .n{width:24px;height:24px;border-radius:7px;background:var(--accent-soft);color:var(--accent);font-family:var(--mono);
+  font-size:11px;font-weight:700;display:grid;place-items:center}
+.pr b{font-size:12.5px;font-weight:650;line-height:1.35}
+.closing{margin-top:22px;border-radius:16px;padding:34px 26px;text-align:center;color:#fff;
+  background:linear-gradient(135deg,#312e81 0,#4f46e5 46%,#0f766e 100%);box-shadow:0 24px 60px -28px rgba(49,46,129,.7);
+  position:relative;overflow:hidden}
+.closing::after{content:"";position:absolute;inset:0;background:radial-gradient(600px 240px at 80% -20%,rgba(255,255,255,.22),transparent 70%)}
+.closing p{position:relative;font-size:clamp(17px,2.5vw,24px);font-weight:650;line-height:1.4;letter-spacing:-.02em;max-width:30ch;margin:0 auto}
+footer{padding:26px 0 50px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
+.footer-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,14px);background:#111827;color:#fff;padding:9px 15px;
+  border-radius:999px;font-size:12px;font-weight:600;box-shadow:var(--sh-3);opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;z-index:200;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media print{.topbar,.sec-toggle,.lab-toolbar,.q-del,.toast{display:none!important}
+  section[data-collapsed="true"] > .wrap > .sec-body{display:block!important}
+  body{background:#fff}.card,.readout,.tier,.lab2{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="dot" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 L10 12 L14 15 L20 6"/></svg></span>
+      Slope
+    </div>
+    <nav class="nav" id="nav" aria-label="Sections"></nav>
+  </div>
+</header>
+
+<main>
+
+<!-- 1 ── slope ------------------------------------------------------ -->
+<section class="hero" id="slope" data-nav="Slope" data-collapsed="false">
+  <div class="wrap">
+    <h1>Manage the Slope,<br>Not Just the Title</h1>
+    <p class="lede" data-tip="Title is a lagging label. Scope, ownership, impact and learning are the curves that actually move a career.">Four curves. Title just lags.</p>
+
+    <div class="rail" role="list" aria-label="Engineer trajectory">
+      <div class="rail-step s1" role="listitem"><div class="rail-name">SDE1</div></div>
+      <div class="rail-arrow" aria-hidden="true">›</div>
+      <div class="rail-step s2" role="listitem"><div class="rail-name" data-tip="Managers route stretch, high-visibility work here to build promotion evidence. This pipeline closes once the case is won.">Promotion push</div></div>
+      <div class="rail-arrow" aria-hidden="true">›</div>
+      <div class="rail-step s3" role="listitem"><div class="rail-name">SDE2</div></div>
+      <div class="rail-arrow" aria-hidden="true">›</div>
+      <div class="rail-step s4" role="listitem"><div class="rail-name" data-tip="Credibility, ownership and track record are rebuilt at the new level. The slope is won or lost here.">Tenured SDE2</div></div>
+      <div class="rail-arrow" aria-hidden="true">›</div>
+      <div class="rail-step s4" role="listitem"><div class="rail-name">Next Level</div></div>
+    </div>
+
+    <div class="dims">
+      <div class="dim" data-tip="The size and ambiguity of the problem you are responsible for — not the number of tickets you close.">
+        <span class="ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><h3>Scope</h3></div>
+      <div class="dim" data-tip="What you are accountable for end-to-end — design, on-call, roadmap, and the consequences of failure.">
+        <span class="ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 4.4-3.2 8.2-8 9-4.8-.8-8-4.6-8-9V7z"/></svg></span><h3>Ownership</h3></div>
+      <div class="dim" data-tip="Whether your work changes outcomes the organization actually values — not how busy you were.">
+        <span class="ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13H11l-1 9 8.5-11H12z"/></svg></span><h3>Impact</h3></div>
+      <div class="dim" data-tip="The rate you are still acquiring new skill, domain or depth. First curve to flatten, last one noticed.">
+        <span class="ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><h3>Learning</h3></div>
+    </div>
+
+    <div class="mx2" role="table" aria-label="Title versus slope">
+      <span class="ch" role="columnheader"></span>
+      <span class="ch" role="columnheader">Title</span>
+      <span class="ch" role="columnheader"><span class="minico" data-tip="Scope — the size and ambiguity of the problem you are responsible for, not the number of tickets you close."><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></span>
+      <span class="ch" role="columnheader"><span class="minico" data-tip="Ownership — what you are accountable for end-to-end, including the failure modes."><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 4.4-3.2 8.2-8 9-4.8-.8-8-4.6-8-9V7z"/></svg></span></span>
+      <span class="ch" role="columnheader"><span class="minico" data-tip="Impact — whether your work changes outcomes the organization actually values."><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13H11l-1 9 8.5-11H12z"/></svg></span></span>
+      <span class="ch" role="columnheader"><span class="minico" data-tip="Learning curve — the rate you are still acquiring new skill, domain or depth. First curve to flatten, last one noticed."><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span></span>
+
+      <div class="rl row-flat" role="rowheader" style="display:contents">
+        <div class="rl">
+          <div class="top"><h4 data-tip="The level changed. The size, ownership and novelty of the work did not.">Flat</h4><span class="pill warn">Stalled</span></div>
+          <svg viewBox="0 0 200 26" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M4 20H196" fill="none" stroke="#9aa1ac" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="4" cy="20" r="3" fill="#fff" stroke="#9aa1ac" stroke-width="2"/>
+            <circle cx="196" cy="20" r="3" fill="#fff" stroke="#9aa1ac" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="cell v-up" role="cell">↑</div>
+        <div class="cell v-flat" role="cell">→</div>
+        <div class="cell v-flat" role="cell">→</div>
+        <div class="cell v-flat" role="cell">→</div>
+        <div class="cell v-flat" role="cell">→</div>
+      </div>
+
+      <div class="row-steep" style="display:contents">
+        <div class="rl">
+          <div class="top"><h4 data-tip="Each level brings a genuinely bigger problem, more end-to-end ownership, and new things to learn.">Steep</h4><span class="pill good">Compounding</span></div>
+          <svg viewBox="0 0 200 26" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M4 22C70 22 120 14 196 4" fill="none" stroke="#047857" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="4" cy="22" r="3" fill="#fff" stroke="#047857" stroke-width="2"/>
+            <circle cx="196" cy="4" r="3" fill="#047857"/>
+          </svg>
+        </div>
+        <div class="cell v-up" role="cell">↑</div>
+        <div class="cell v-up2" role="cell">↑↑</div>
+        <div class="cell v-up2" role="cell">↑↑</div>
+        <div class="cell v-up2" role="cell">↑↑</div>
+        <div class="cell v-up" role="cell">↑</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="split-card" data-tip="Same symptom — less exciting work after a promotion. Very different prognosis. Recalibration is temporary by design; stagnation is structural.">
+        <b>Recalibration</b><span class="neq">≠</span><i>Stagnation</i>
+      </div>
+      <div class="split-card" data-tip="The difference is never the work itself. It is whether a credible path upward exists from it.">
+        <b>Second-tier work</b><span class="neq">≠</span><i>Second-tier position</i>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 ── plateau ---------------------------------------------------- -->
+<section id="plateau" data-nav="Plateau" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2 class="sec-title" data-tip="These are descriptive terms for a recognizable pattern — not formal, universally accepted industry terminology. Useful vocabulary, not an official diagnosis.">Post-promotion plateau</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="sec-body">
+      <div class="chips" style="margin-bottom:14px">
+        <span class="chip" data-tip="The period after a promotion where the work feels smaller than the level suggests — often because promotion-evidence work has ended.">Post-promotion plateau</span>
+        <span class="chip" data-tip="Expectations reset. You are now assessed against the new level rather than the old one.">Recalibration</span>
+        <span class="chip" data-tip="You hold the title but have not yet accumulated the demonstrated history at that level that others use to decide whether to hand you critical work.">Track-record gap</span>
+        <span class="chip" data-tip="Real, necessary work that is not the team's highest-leverage or most visible project.">Second-tier work</span>
+        <span class="chip" data-tip="A limit on how large a problem you can be given — set by the work available, not by your ability. Organizational ceilings come from how teams are funded and where critical projects live.">Scope ceiling</span>
+        <span class="chip" data-tip="You are still shipping, but the work no longer teaches you much. Skill gained per unit time is falling.">Learning decay</span>
+        <span class="chip" data-tip="You can contribute but cannot decide — no end-to-end accountability. Few realistic routes to the next level, because the work that would justify a promotion is already held.">Limited mobility</span>
+      </div>
+
+      <div class="ba">
+        <div class="ba-col before">
+          <span class="kicker">Before</span>
+          <div class="step" style="margin-top:11px"><span class="marker" aria-hidden="true"></span><span data-tip="High-visibility, above-level work is temporarily directed your way to generate promotion evidence.">Stretch work allocated</span></div>
+          <div class="step"><span class="marker" aria-hidden="true"></span><span data-tip="Scope, visibility and learning all spike, because the work has to justify the promotion case.">Evidence generated</span></div>
+          <div class="step"><span class="marker" aria-hidden="true"></span><span data-tip="The title catches up to the work you were already doing. The slack in the system closes.">Promotion lands</span></div>
+        </div>
+        <div class="ba-col after">
+          <span class="kicker">After</span>
+          <div class="step" style="margin-top:11px"><span class="marker" aria-hidden="true"></span><span data-tip="Stretch work is reallocated to the next promotion candidate. You now hold the title that work was building toward.">Pipeline closes</span></div>
+          <div class="step"><span class="marker" aria-hidden="true"></span><span data-tip="A track record is built by repeated demonstrated ownership. It does not transfer automatically with the title.">Trust rebuilt</span></div>
+          <div class="step"><span class="marker" aria-hidden="true"></span><span data-tip="They hold the accumulated history, context and relationships that make them the low-risk choice for the highest-impact work.">Owners keep critical path</span></div>
+        </div>
+      </div>
+
+      <div class="formula">
+        <span>Promotion</span><span class="eq">≠</span><span>first-tier ownership</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ── tiers ------------------------------------------------------ -->
+<section id="tiers" data-nav="Tiers" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2 class="sec-title" data-tip="Second-tier work is not one thing. Its value depends almost entirely on what it connects to next — the label is identical, the situations are not.">Second-tier work</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="sec-body">
+      <div class="grid g3">
+        <div class="tier a">
+          <div class="tier-head"><span class="kicker">A</span>
+            <span class="lvl" data-tip="Relative value for long-term growth. Medium: real new skill, but it may not convert into ownership or impact."><span class="on">◉</span><span class="on">◉</span><span class="off">◉</span></span>
+          </div>
+          <h3>Learning</h3>
+          <div class="chips">
+            <span class="chip" data-tip="Genuinely new territory: you are paying in status and visibility, and getting paid back in skill.">New domain</span>
+            <span class="chip" data-tip="The work is lower priority, but the architecture is unfamiliar.">New architecture</span>
+            <span class="chip">New stack</span><span class="chip">New stakeholders</span>
+          </div>
+          <div class="path"><span class="node">work</span><span class="ar">→</span><span class="node end">skill</span></div>
+        </div>
+
+        <div class="tier b">
+          <div class="tier-head"><span class="kicker">B</span>
+            <span class="lvl" data-tip="Potentially high — but conditional. The value comes from the path, so verify the path rather than assuming it."><span class="on">◉</span><span class="on">◉</span><span class="on">◉</span></span>
+          </div>
+          <h3>Ownership path</h3>
+          <div class="chips">
+            <span class="chip good" data-tip="Growing teams redistribute ownership. Shrinking teams concentrate it.">Team growing</span>
+            <span class="chip good" data-tip="Ownership changes hands often enough that new people can pick up real scope.">Ownership shifts</span>
+            <span class="chip good" data-tip="New initiatives mean unclaimed surface area — the cheapest route to ownership.">New initiatives</span>
+            <span class="chip good" data-tip="A manager who actively develops people converts second-tier work into a stepping stone.">Manager invests</span>
+          </div>
+          <div class="path"><span class="node">work</span><span class="ar">→</span><span class="node">ownership</span><span class="ar">→</span><span class="node end">scope</span></div>
+        </div>
+
+        <div class="tier c">
+          <div class="tier-head"><span class="kicker">C</span>
+            <span class="lvl" data-tip="Low — not because the work is beneath you, but because time spent here does not build toward the next level."><span class="on">◉</span><span class="off">◉</span><span class="off">◉</span></span>
+          </div>
+          <h3>No path</h3>
+          <div class="chips">
+            <span class="chip bad" data-tip="The core systems are owned by engineers with more tenure, and nothing about the structure is moving.">Core locked</span>
+            <span class="chip bad" data-tip="Repetitive maintenance with little scope expansion.">Maintenance</span>
+            <span class="chip bad">Low impact</span>
+            <span class="chip bad" data-tip="No opportunity to demonstrate next-level behaviour, which is what promotion decisions are based on.">No next-level surface</span>
+          </div>
+          <div class="path"><span class="node">work</span><span class="ar">→</span><span class="node loop">repeat</span><span class="ar">→</span><span class="node stop">ceiling</span></div>
+        </div>
+      </div>
+
+      <div class="formula" style="margin-top:14px">
+        <span style="color:var(--faint);text-decoration:line-through">second-tier work</span>
+        <span class="eq">≠</span>
+        <span>no path up</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 ── options ---------------------------------------------------- -->
+<section id="options" data-nav="Options" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2 class="sec-title" data-tip="Three legitimate strategies, not three points on a quality scale. Each trades a different kind of capital. This page does not rank them.">Options</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="sec-body">
+      <div class="mx-wrap">
+        <table class="mx">
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              <th scope="col" class="stay">Stay</th>
+              <th scope="col" class="transfer">Transfer</th>
+              <th scope="col" class="move">Move</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" data-tip="How much of the problem space you already understand.">Domain</th>
+              <td><span class="sym yes">✓✓</span></td><td><span class="sym mid">~</span></td><td><span class="sym no">✗</span></td></tr>
+            <tr><th scope="row" data-tip="Whether decision-makers believe you will deliver. Accumulated through repeated delivery; not declared.">Trust</th>
+              <td><span class="sym yes">✓✓</span></td><td><span class="sym mid">~</span></td><td><span class="sym no">✗</span></td></tr>
+            <tr><th scope="row" data-tip="Relationships that convert into access, context and unblocking.">Network</th>
+              <td><span class="sym yes">✓✓</span></td><td><span class="sym yes">✓✓</span></td><td><span class="sym mid">~</span></td></tr>
+            <tr><th scope="row" data-tip="Ramp time, lost context, unvested equity, relationships rebuilt from zero.">Switch cost</th>
+              <td><span class="sym yes">low</span></td><td><span class="sym mid">mid</span></td><td><span class="sym no">high</span></td></tr>
+            <tr><th scope="row" data-tip="New skill, domain or technical depth gained per quarter.">Learning</th>
+              <td><span class="sym mid">~</span></td><td><span class="sym yes">✓✓</span></td><td><span class="sym yes">✓✓</span></td></tr>
+            <tr><th scope="row" data-tip="Whether initial ownership connects to something bigger, or terminates where it starts. This is the row that decides the others.">Ownership path</th>
+              <td><span class="sym q">?</span></td><td><span class="sym q">?</span></td><td><span class="sym q">?</span></td></tr>
+            <tr><th scope="row" data-tip="The risk that the same structural pattern — core ownership concentrated among the tenured — reappears in the new place.">Repeat risk</th>
+              <td><span class="sym mid">~</span></td><td><span class="sym no">⚠</span></td><td><span class="sym no">⚠</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="legend">
+        <span><b class="sym yes">✓✓</b> strong</span>
+        <span><b class="sym mid">~</b> partial</span>
+        <span><b class="sym no">✗ ⚠</b> risk</span>
+        <span><b class="sym q">?</b> unknown</span>
+      </div>
+
+      <div class="qrow">
+        <div class="qcell" data-tip="Scope is the only thing that makes staying a growth decision rather than a comfort decision.">Scope ↑ in 12 months?</div>
+        <div class="qcell" data-tip="Not the pitch — the actual pattern of who moved from contributor to owner, and what enabled it.">Contributor → owner path?</div>
+        <div class="qcell" data-tip="A new environment with the same structure buys you a new learning curve and nothing else.">Stronger, or just new?</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 ── capital ---------------------------------------------------- -->
+<section id="capital" data-nav="Capital" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">05</span>
+      <h2 class="sec-title" data-tip="The stock of things that make you valuable and mobile. A good move ideally compounds several forms at once.">Career capital</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="sec-body">
+      <div class="equation">
+        <span class="eq-op" style="font-size:17px"; >=</span>
+        <span class="eq-term" data-tip="How hard you are to replace on a specific class of technical problem.">Technical Depth</span>
+        <span class="eq-op">+</span>
+        <span class="eq-term" data-tip="Systems and outcomes you are accountable for end-to-end, including the failure modes.">Ownership</span>
+        <span class="eq-op">+</span>
+        <span class="eq-term" data-tip="The size and ambiguity of the problems you are trusted with.">Scope</span>
+        <span class="eq-op">+</span>
+        <span class="eq-term" data-tip="How much your work changes outcomes the organization values.">Impact</span>
+        <span class="eq-op">+</span>
+        <span class="eq-term" data-tip="Belief, earned through repeated delivery, that you will follow through at the new level.">Org Trust</span>
+        <span class="eq-op">+</span>
+        <span class="eq-term" data-tip="What other teams and leaders know you for — reputation that survives team churn.">Reputation</span>
+      </div>
+
+      <div class="formula" style="margin-top:16px" data-tip="A move that changes only title, domain, company or team — without increasing scope, ownership, impact or learning — relabels your situation. It does not compound it.">
+        <span style="color:var(--faint)">title</span><span class="eq">·</span>
+        <span style="color:var(--faint)">domain</span><span class="eq">·</span>
+        <span style="color:var(--faint)">company</span><span class="eq">·</span>
+        <span style="color:var(--faint)">team</span>
+        <span class="eq">=</span>
+        <span style="color:var(--bad)">relabelled</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 ── lab -------------------------------------------------------- -->
+<section id="lab" data-nav="Lab" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">06</span>
+      <h2 class="sec-title" data-tip="Describe what you actually expect from each environment over the next 12 months. The point is to make the differences concrete and arguable — not to produce a winner.">Stay a year?</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="sec-body">
+      <div class="lab-toolbar">
+        <button class="btn" type="button" id="btnMirror" data-tip="Copy the current profile into the hypothetical, then adjust only what you expect to actually differ.">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 21h3a2 2 0 0 0 2-2v-3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>Mirror</button>
+        <button class="btn" type="button" id="btnCopy" data-tip="Copy both profiles as plain text so you can paste them into a journal or a conversation.">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy</button>
+        <button class="btn" type="button" id="btnReset">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Reset</button>
+      </div>
+
+      <div class="lab2" id="lab2"></div>
+
+      <div class="readout">
+        <div class="readout-grid">
+          <div class="chart-wrap">
+            <svg id="radar" viewBox="0 0 400 340" role="img" aria-labelledby="rt rd">
+              <title id="rt">Environment profile comparison</title><desc id="rd">Six-axis chart comparing the current environment against a potential new environment. Each axis is marked with the icon of the dimension it represents.</desc>
+            </svg>
+            <div class="legend-c">
+              <span><i style="background:var(--accent)"></i>Current</span>
+              <span><i style="background:#0d9488"></i>New</span>
+            </div>
+          </div>
+          <div>
+            <div class="bars" id="bars"></div>
+            <p class="legend" id="diffSummary" style="margin-top:14px"></p>
+          </div>
+        </div>
+      </div>
+
+      <p class="legend" style="margin-top:12px">
+        <span data-tip="There is deliberately no composite total, no ranking and no winner. A higher number is not a better decision — it is only a description of what you expect. Where two bars differ by 2+ and you have no evidence for either, that gap is a research task, not a conclusion.">
+          <b style="color:var(--text)">No score.</b>
+        </span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- 7 ── checklist -------------------------------------------------- -->
+<section id="checklist" data-nav="Checklist" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">07</span>
+      <h2 class="sec-title" data-tip="Hover any question for the full wording. Tick it only when you can answer with evidence — not when you have an opinion. Click the text to rewrite it.">Before deciding</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="sec-body">
+      <div class="q-toolbar">
+        <button class="btn" type="button" id="btnAddQ"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+        <button class="btn" type="button" id="btnClearQ">Uncheck</button>
+        <div class="q-progress"><span class="track"><span class="fill" id="qFill" style="width:0%"></span></span><span id="qLabel">0/12</span></div>
+      </div>
+      <div class="q-list" id="qList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 ── framework -------------------------------------------------- -->
+<section id="framework" data-nav="Framework" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">08</span>
+      <h2 class="sec-title" data-tip="A structure for the reasoning, not an answer key. Neither path ends in stay or leave — both end in evidence, because that is the only thing that reduces uncertainty.">Decision framework</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+
+    <div class="sec-body">
+      <div class="grid g2">
+        <div class="card">
+          <div class="tree">
+            <div class="tree-node start">Current team</div>
+            <div class="tree-conn"></div>
+            <div class="tree-node q">Learning ↑?</div>
+            <div class="tree-conn"></div>
+            <div class="tree-node q">Scope ↑?</div>
+            <div class="tree-conn"></div>
+            <div class="tree-node q">Ownership path?</div>
+            <div class="tree-conn"></div>
+            <div class="tree-fork">
+              <div class="fork-branch"><span class="pill good">YES</span>
+                <div class="tree-node" style="border-color:var(--good-line);background:var(--good-soft)">Keep building</div></div>
+              <div class="fork-branch"><span class="pill warn">NO</span>
+                <div class="tree-node" style="border-color:var(--warn-line);background:var(--warn-soft)" data-tip="Explore ≠ leave. It means go gather evidence.">Explore alternatives</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="tree">
+            <div class="tree-node start">New team</div>
+            <div class="tree-conn"></div>
+            <div class="tree-node q">Steeper learning?</div>
+            <div class="tree-conn"></div>
+            <div class="tree-node q">Expanding scope?</div>
+            <div class="tree-conn"></div>
+            <div class="tree-node q">Ownership path?</div>
+            <div class="tree-conn"></div>
+            <div class="tree-node q">Switch cost known?</div>
+            <div class="tree-conn"></div>
+            <div class="tree-fork">
+              <div class="fork-branch"><span class="pill good">All YES</span>
+                <div class="tree-node" style="border-color:var(--good-line);background:var(--good-soft)">Stronger</div></div>
+              <div class="fork-branch"><span class="pill warn">NO / ?</span>
+                <div class="tree-node" style="border-color:var(--warn-line);background:var(--warn-soft)" data-tip="A new environment with the same structure buys you a new learning curve and nothing else.">Just new</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:22px">
+        <span class="kicker">Evidence</span>
+        <div class="ev-grid" id="evidence"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 ── mindset ---------------------------------------------------- -->
+<section id="mindset" data-nav="Mindset" data-collapsed="false">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-num">09</span>
+      <h2 class="sec-title">Fast-track mindset</h2>
+      <button class="sec-toggle" type="button" aria-label="Collapse section" aria-expanded="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+    <div class="sec-body">
+      <div class="principles" id="principles"></div>
+      <div class="closing"><p>Fast growth isn't first-tier work.<br>It's a rising slope.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-row">
+    <span data-tip="This page never tells you whether to stay, transfer or leave. It makes the tradeoffs and the missing evidence visible so you can reason about them yourself. All inputs are stored in your browser only — no backend, no tracking.">
+      <b style="color:var(--text)">Thinking tool, not a recommendation engine.</b>
+    </span>
+    <button class="btn" type="button" id="btnResetAll"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Reset all</button>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "manage-the-slope-v3";
+
+  var DIMS = [
+    { id:"learning",   label:"Learning",   hint:"Learning curve — new skill, domain or technical depth gained per quarter." },
+    { id:"scope",      label:"Scope",      hint:"Scope growth — whether the size of the problem you own is expanding." },
+    { id:"ownership",  label:"Ownership",  hint:"Ownership growth — how much of a system you own end-to-end, not just contribute to." },
+    { id:"impact",     label:"Impact",     hint:"How much your work changes outcomes the org cares about." },
+    { id:"visibility", label:"Visibility", hint:"How visible your work is to decision-makers beyond your team." },
+    { id:"promotion",  label:"Promotion",  hint:"Promotion opportunity — whether a realistic path to the next level exists here." }
+  ];
+
+  /* 24×24 icon paths, one per dimension — used to label charts wordlessly */
+  var ICON = {
+    learning:   "M3 17l6-6 4 4 8-8M15 7h6v6",
+    scope:      "M4 20V10M10 20V4M16 20v-7M22 20H2",
+    ownership:  "M12 3l8 4v5c0 4.4-3.2 8.2-8 9-4.8-.8-8-4.6-8-9V7z",
+    impact:     "M13 2L4.5 13H11l-1 9 8.5-11H12z",
+    visibility: "M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6zM12 15a3 3 0 100-6 3 3 0 000 6z",
+    promotion:  "M12 4l7 7h-4v9H9v-9H5z"
+  };
+  function iconSvg(id, size){
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+           'stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="' + ICON[id] + '"/></svg>';
+  }
+
+  /* short label -> full question, revealed on hover */
+  var QUESTIONS = [
+    ["Top projects?",         "What are the team's most important projects?"],
+    ["Who owns them?",        "Who currently owns them?"],
+    ["First-tier = ?",        "What does first-tier ownership look like on this team?"],
+    ["New SDE2 path?",        "How does ownership typically evolve for a new SDE2?"],
+    ["Contributor → owner?",  "How long does it typically take to move from contributor to owner?"],
+    ["Growing team?",         "Is the team growing or shrinking?"],
+    ["New work starting?",    "Are new projects, systems or initiatives being created?"],
+    ["Manager stretches?",    "Does the manager actively create stretch opportunities?"],
+    ["Core locked?",          "Are core projects structurally locked to more tenured engineers?"],
+    ["My scope in 6–12?",     "If I stay another 6–12 months, what concrete new scope could I realistically own?"],
+    ["Transfer: 3/6/12?",  "If I transfer, what would I own after 3, 6 and 12 months?"],
+    ["Limited or uncomfy?",   "Am I changing teams because the current environment is limiting me, or simply because I am uncomfortable being temporarily less senior in a new environment?"]
+  ];
+
+  var EVIDENCE = [
+    ["Ownership map",   "Who owns which system, and for how long. Ask directly — most engineers will tell you."],
+    ["Project ranking", "Which projects leadership would cut last. That ordering is the real tier list."],
+    ["Scope precedent", "Two recent examples of someone moving from contributor to owner, and what enabled it."],
+    ["Manager answer",  "\u201CWhat could I own in six months that I don't own today?\u201D A vague answer is itself data."],
+    ["Switch cost",     "Ramp time, lost context, unvested equity, relationships rebuilt from zero."]
+  ];
+
+  var PRINCIPLES = [
+    ["Scope",       "Don't optimize only for title. Prefer the larger, more ambiguous problem over the more prestigious-sounding one."],
+    ["Ownership",   "Being accountable end-to-end teaches faster than contributing to someone else's system."],
+    ["Impact",      "Ask what would change if your work did not exist. That answer is your actual impact."],
+    ["Learning",    "Protect the learning curve. It flattens first and is noticed last, because shipping still feels productive."],
+    ["Trust",       "Trust is what converts demonstrated ability into access to critical work."],
+    ["Evidence",    "Collect next-level evidence early. Evidence gathered under pressure is weaker and arrives late."],
+    ["Don't flee",  "Don't switch teams merely to escape second-tier work. It follows you if the structure is the same."],
+    ["Switch when", "The current environment is structurally capped — and another offers a credible path up. Both, not one."],
+    ["Capital",     "Think in career capital: which of the six forms actually increases."],
+    ["Cost",        "Think in opportunity cost: every year is a trade against the alternatives you did not take."]
+  ];
+
+  function fresh(){
+    var cur = {}, pot = {};
+    DIMS.forEach(function(d){ cur[d.id] = 3; pot[d.id] = 3; });
+    return {
+      current: cur, potential: pot,
+      questions: QUESTIONS.map(function(q, i){
+        return { id:"q"+(i+1), text:q[0], full:q[1], checked:false, note:"", custom:false };
+      }),
+      evidence: {}, collapsed: {}
+    };
+  }
+
+  var state = load();
+
+  function load(){
+    var base = fresh();
+    try {
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return base;
+      var s = JSON.parse(raw);
+      if(!s || typeof s !== "object") return base;
+      if(s.current)   DIMS.forEach(function(d){ if(typeof s.current[d.id] === "number")   base.current[d.id]   = s.current[d.id]; });
+      if(s.potential) DIMS.forEach(function(d){ if(typeof s.potential[d.id] === "number") base.potential[d.id] = s.potential[d.id]; });
+      if(s.evidence)  base.evidence = s.evidence;
+      if(s.collapsed) base.collapsed = s.collapsed;
+      if(Array.isArray(s.questions) && s.questions.length){
+        base.questions = s.questions.map(function(q, i){
+          var fb = QUESTIONS[i] || ["", ""];
+          return {
+            id: q.id || ("q"+(i+1)),
+            text: (typeof q.text === "string" && q.text) ? q.text : fb[0],
+            full: (typeof q.full === "string" && q.full) ? q.full : fb[1],
+            checked: !!q.checked,
+            note: typeof q.note === "string" ? q.note : "",
+            custom: !!q.custom
+          };
+        });
+      }
+    } catch(e){}
+    return base;
+  }
+
+  var timer = null;
+  function save(){ if(timer) clearTimeout(timer); timer = setTimeout(saveNow, 180); }
+  function saveNow(){
+    if(timer) clearTimeout(timer);
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){}
+  }
+
+  function toast(msg){
+    var el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(el._t);
+    el._t = setTimeout(function(){ el.classList.remove("show"); }, 2000);
+  }
+
+  /* ── nav ─────────────────────────────────────────────── */
+  var nav = document.getElementById("nav");
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section[data-nav]"));
+  var links = [];
+  sections.forEach(function(sec){
+    var a = document.createElement("a");
+    a.href = "#" + sec.id;
+    a.textContent = sec.dataset.nav;
+    a.dataset.target = sec.id;
+    nav.appendChild(a);
+    links.push(a);
+  });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(!en.isIntersecting) return;
+      links.forEach(function(a){ a.classList.toggle("active", a.dataset.target === en.target.id); });
+    });
+  }, { rootMargin: "-64px 0px -70% 0px", threshold: 0 });
+  sections.forEach(function(s){ obs.observe(s); });
+
+  /* ── collapse ────────────────────────────────────────── */
+  sections.forEach(function(sec){
+    var btn = sec.querySelector(".sec-toggle");
+    if(!btn) return;
+    if(state.collapsed[sec.id]) apply(true);
+    btn.addEventListener("click", function(){ apply(sec.dataset.collapsed !== "true"); });
+    function apply(collapsed){
+      sec.dataset.collapsed = collapsed ? "true" : "false";
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      btn.setAttribute("aria-label", collapsed ? "Expand section" : "Collapse section");
+      state.collapsed[sec.id] = collapsed;
+      save();
+    }
+  });
+
+  /* ── principles ──────────────────────────────────────── */
+  var pHost = document.getElementById("principles");
+  PRINCIPLES.forEach(function(p, i){
+    var el = document.createElement("div");
+    el.className = "pr";
+    el.setAttribute("data-tip", p[1]);
+    el.innerHTML = '<span class="n">' + String(i+1).padStart(2,"0") + '</span><b>' + p[0] + '</b>';
+    pHost.appendChild(el);
+  });
+
+  /* ── lab: shared-label comparison grid ───────────────── */
+  var lab = document.getElementById("lab2");
+  function hd(cls, text, tip){
+    var d = document.createElement("div");
+    d.className = "hd " + cls;
+    if(tip) d.setAttribute("data-tip", tip);
+    if(cls === "a" || cls === "b") d.innerHTML = '<span class="swatch" aria-hidden="true"></span>';
+    d.appendChild(document.createTextNode(text));
+    return d;
+  }
+  lab.appendChild(hd("corner", ""));
+  lab.appendChild(hd("a", "Current", "Expected trajectory if you stay another 12 months."));
+  lab.appendChild(hd("b", "New", "Hypothetical: what a new team would plausibly offer."));
+
+  function sliderCell(which, d){
+    var c = document.createElement("div");
+    c.className = "cell";
+    c.innerHTML =
+      '<input type="range" class="' + (which === "potential" ? "b" : "a") + '" min="1" max="5" step="1" value="' + state[which][d.id] + '" ' +
+      'data-which="' + which + '" data-dim="' + d.id + '" aria-label="' + d.label + ' in ' + (which === "current" ? "current" : "potential new") + ' environment">' +
+      '<span class="slider-val ' + (which === "potential" ? "b" : "a") + '" id="v-' + which + '-' + d.id + '">' + state[which][d.id] + '</span>';
+    return c;
+  }
+
+  DIMS.forEach(function(d){
+    var l = document.createElement("div");
+    l.className = "lbl";
+    l.setAttribute("data-tip", d.hint);
+    l.textContent = d.label;
+    lab.appendChild(l);
+    lab.appendChild(sliderCell("current", d));
+    lab.appendChild(sliderCell("potential", d));
+  });
+
+  lab.addEventListener("input", function(e){
+    var el = e.target;
+    if(el.type !== "range") return;
+    state[el.dataset.which][el.dataset.dim] = parseInt(el.value, 10);
+    document.getElementById("v-" + el.dataset.which + "-" + el.dataset.dim).textContent = el.value;
+    render(); save();
+  });
+
+  function sync(){
+    Array.prototype.forEach.call(lab.querySelectorAll("input[type=range]"), function(el){
+      el.value = state[el.dataset.which][el.dataset.dim];
+      document.getElementById("v-" + el.dataset.which + "-" + el.dataset.dim).textContent = el.value;
+    });
+  }
+
+  /* ── radar ───────────────────────────────────────────── */
+  var NS = "http://www.w3.org/2000/svg";
+  var radar = document.getElementById("radar");
+
+  function renderRadar(){
+    while(radar.firstChild) radar.removeChild(radar.firstChild);
+    var cx = 200, cy = 170, R = 100, LR = 122, n = DIMS.length;
+    function ang(i){ return (-90 + i * 360 / n) * Math.PI / 180; }
+    function pt(i, v){ var a = ang(i), r = R * v / 5; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
+    function mk(tag, at){ var el = document.createElementNS(NS, tag); for(var k in at) el.setAttribute(k, at[k]); return el; }
+
+    [1,2,3,4,5].forEach(function(ring){
+      var pts = [];
+      for(var i=0;i<n;i++){ var p = pt(i, ring); pts.push(p[0] + "," + p[1]); }
+      radar.appendChild(mk("polygon", { points: pts.join(" "), fill: ring === 5 ? "#fafbfc" : "none",
+        stroke: ring === 5 ? "#d3d7de" : "#e5e7eb", "stroke-width": ring === 5 ? 1.2 : 1 }));
+    });
+    for(var i=0;i<n;i++){ var p = pt(i, 5);
+      radar.appendChild(mk("line", { x1: cx, y1: cy, x2: p[0], y2: p[1], stroke: "#e5e7eb" })); }
+
+    function poly(vals, fill, stroke){
+      var pts = [];
+      for(var i=0;i<n;i++){ var p = pt(i, vals[i]); pts.push(p[0] + "," + p[1]); }
+      radar.appendChild(mk("polygon", { points: pts.join(" "), fill: fill, stroke: stroke, "stroke-width": 2, "stroke-linejoin": "round" }));
+      for(var j=0;j<n;j++){ var q = pt(j, vals[j]);
+        radar.appendChild(mk("circle", { cx: q[0], cy: q[1], r: 3.2, fill: "#fff", stroke: stroke, "stroke-width": 2 })); }
+    }
+    poly(DIMS.map(function(d){ return state.potential[d.id]; }), "rgba(13,148,136,.16)", "#0d9488");
+    poly(DIMS.map(function(d){ return state.current[d.id]; }), "rgba(79,70,229,.18)", "#4f46e5");
+
+    DIMS.forEach(function(d, i){
+      var a = ang(i);
+      var x = cx + Math.cos(a) * LR, y = cy + Math.sin(a) * LR;
+      var sin = Math.sin(a);
+      var dy = sin < -.5 ? -1 : (sin > .5 ? 9 : 4);
+      var g = mk("g", { transform: "translate(" + (x - 10) + "," + (y + dy - 10) + ")" });
+      var ti = mk("title", {});
+      ti.textContent = d.label + " — " + (state.current[d.id] + " current → " + state.potential[d.id] + " new");
+      g.appendChild(ti);
+      g.appendChild(mk("rect", { width: 20, height: 20, rx: 6, fill: "#eef2ff" }));
+      g.appendChild(mk("path", {
+        d: ICON[d.id], fill: "none", stroke: "#4f46e5", "stroke-width": 2.1,
+        "stroke-linecap": "round", "stroke-linejoin": "round",
+        transform: "scale(0.62) translate(3.6,3.6)"
+      }));
+      radar.appendChild(g);
+    });
+  }
+
+  function renderBars(){
+    var host = document.getElementById("bars");
+    host.innerHTML = "";
+    DIMS.forEach(function(d){
+      var c = state.current[d.id], p = state.potential[d.id], delta = p - c;
+      var txt = delta === 0 ? "=" : (delta > 0 ? "\u25B2 +" + delta : "\u25BC " + delta);
+      var row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML =
+        '<div class="bar-head"><span class="minico" data-tip="' + d.hint + '">' + iconSvg(d.id, 13) + '</span>' +
+        '<span class="delta" data-tip="' + d.label + ': ' + c + ' now, ' + p + ' in the new environment.">' + txt + '</span></div>' +
+        '<div class="bar-line"><span class="bar-track"><span class="bar-fill cur" style="width:' + (c/5*100) + '%"></span></span><span class="bar-tag">' + c + '</span></div>' +
+        '<div class="bar-line"><span class="bar-track"><span class="bar-fill pot" style="width:' + (p/5*100) + '%"></span></span><span class="bar-tag">' + p + '</span></div>';
+      host.appendChild(row);
+    });
+  }
+
+  function renderDiff(){
+    var higher = 0, lower = 0, same = 0, big = 0;
+    DIMS.forEach(function(d){
+      var delta = state.potential[d.id] - state.current[d.id];
+      if(delta > 0) higher++; else if(delta < 0) lower++; else same++;
+      if(Math.abs(delta) >= 2) big++;
+    });
+    document.getElementById("diffSummary").innerHTML =
+      '<span data-tip="' + big + ' of 6 dimensions differ by 2 or more points. Those are your highest-leverage assumptions — and the ones most worth verifying first.">' +
+      '<b style="color:var(--text)">' + higher + '↑ · ' + lower + '↓ · ' + same + '=</b>&nbsp;' + big + ' × 2+</span>';
+  }
+
+  function render(){ renderRadar(); renderBars(); renderDiff(); }
+
+  /* ── checklist ───────────────────────────────────────── */
+  var qHost = document.getElementById("qList");
+  var TICK = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg>';
+
+  function renderQuestions(){
+    qHost.innerHTML = "";
+    state.questions.forEach(function(q){
+      var row = document.createElement("div");
+      row.className = "q-row" + (q.checked ? " done" : "");
+
+      var lab2 = document.createElement("label");
+      lab2.className = "q-box";
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = q.checked;
+      input.setAttribute("aria-label", "Mark answered: " + (q.full || q.text));
+      var tick = document.createElement("span");
+      tick.className = "tick";
+      tick.innerHTML = TICK;
+      lab2.appendChild(input); lab2.appendChild(tick);
+
+      var body = document.createElement("div");
+      body.className = "q-body";
+
+      var text = document.createElement("div");
+      text.className = "q-text";
+      text.contentEditable = "true";
+      text.spellcheck = false;
+      text.setAttribute("role", "textbox");
+      text.setAttribute("aria-label", "Question text, editable");
+      if(q.full) text.setAttribute("data-tip", q.full);
+      text.textContent = q.text;
+
+      var note = document.createElement("textarea");
+      note.className = "q-note";
+      note.rows = 1;
+      note.placeholder = "\u2026";
+      note.value = q.note;
+      note.setAttribute("aria-label", "Notes for: " + (q.full || q.text));
+
+      body.appendChild(text); body.appendChild(note);
+
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "q-del";
+      del.innerHTML = "\u00D7";
+      del.title = "Remove";
+      del.setAttribute("aria-label", "Remove question");
+
+      row.appendChild(lab2); row.appendChild(body); row.appendChild(del);
+      qHost.appendChild(row);
+
+      input.addEventListener("change", function(){
+        q.checked = input.checked; row.classList.toggle("done", q.checked); progress(); save();
+      });
+      text.addEventListener("input", function(){ q.text = text.textContent; save(); });
+      text.addEventListener("blur", function(){ q.text = text.textContent.trim() || q.text; text.textContent = q.text; saveNow(); });
+      text.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); text.blur(); } });
+      note.addEventListener("input", function(){
+        q.note = note.value; save();
+        note.style.height = "auto";
+        note.style.height = Math.min(note.scrollHeight, 200) + "px";
+      });
+      note.addEventListener("blur", saveNow);
+      del.addEventListener("click", function(){
+        state.questions = state.questions.filter(function(x){ return x.id !== q.id; });
+        renderQuestions(); save();
+      });
+      if(q.note) requestAnimationFrame(function(){
+        note.style.height = "auto"; note.style.height = Math.min(note.scrollHeight, 200) + "px";
+      });
+    });
+    progress();
+  }
+
+  function progress(){
+    var total = state.questions.length;
+    var done = state.questions.filter(function(q){ return q.checked; }).length;
+    document.getElementById("qFill").style.width = (total ? Math.round(done / total * 100) : 0) + "%";
+    document.getElementById("qLabel").textContent = done + "/" + total;
+  }
+
+  document.getElementById("btnAddQ").addEventListener("click", function(){
+    state.questions.push({ id: "q" + Date.now().toString(36), text: "New question", full: "", checked: false, note: "", custom: true });
+    renderQuestions(); save();
+    var rows = qHost.querySelectorAll(".q-row");
+    var last = rows[rows.length - 1];
+    last.scrollIntoView({ behavior: "smooth", block: "center" });
+    var el = last.querySelector(".q-text");
+    el.focus();
+    var r = document.createRange(); r.selectNodeContents(el);
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  });
+
+  document.getElementById("btnClearQ").addEventListener("click", function(){
+    state.questions.forEach(function(q){ q.checked = false; });
+    renderQuestions(); save(); toast("Unchecked — notes kept");
+  });
+
+  /* ── evidence ────────────────────────────────────────── */
+  var evHost = document.getElementById("evidence");
+  EVIDENCE.forEach(function(item, i){
+    var id = "e" + (i + 1);
+    var wrap = document.createElement("label");
+    wrap.className = "ev";
+    wrap.setAttribute("data-tip", item[1]);
+    var box = document.createElement("span");
+    box.className = "q-box";
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = !!state.evidence[id];
+    input.setAttribute("aria-label", "Gathered: " + item[0]);
+    var tick = document.createElement("span");
+    tick.className = "tick";
+    tick.innerHTML = TICK;
+    box.appendChild(input); box.appendChild(tick);
+    var txt = document.createElement("span");
+    txt.textContent = item[0];
+    wrap.appendChild(box); wrap.appendChild(txt);
+    input.addEventListener("change", function(){ state.evidence[id] = input.checked; save(); });
+    evHost.appendChild(wrap);
+  });
+
+  /* ── toolbar ─────────────────────────────────────────── */
+  document.getElementById("btnMirror").addEventListener("click", function(){
+    DIMS.forEach(function(d){ state.potential[d.id] = state.current[d.id]; });
+    sync(); render(); saveNow(); toast("Mirrored — now adjust it");
+  });
+  document.getElementById("btnReset").addEventListener("click", function(){
+    DIMS.forEach(function(d){ state.current[d.id] = 3; state.potential[d.id] = 3; });
+    sync(); render(); saveNow(); toast("Reset to 3");
+  });
+  document.getElementById("btnCopy").addEventListener("click", function(){
+    var lines = ["Environment profile"];
+    DIMS.forEach(function(d){
+      var delta = state.potential[d.id] - state.current[d.id];
+      lines.push(d.label + ": " + state.current[d.id] + " \u2192 " + state.potential[d.id] +
+        " (" + (delta === 0 ? "=" : (delta > 0 ? "+" : "") + delta) + ")");
+    });
+    lines.push("", "No composite score is derived from these numbers.");
+    var text = lines.join("\n");
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ toast("Copied"); }, function(){ fallback(text); });
+    } else { fallback(text); }
+  });
+  function fallback(text){
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); toast("Copied"); } catch(e){ toast("Copy failed"); }
+    document.body.removeChild(ta);
+  }
+  document.getElementById("btnResetAll").addEventListener("click", function(){
+    try { localStorage.removeItem(KEY); } catch(e){}
+    state = fresh();
+    sections.forEach(function(sec){
+      sec.dataset.collapsed = "false";
+      var b = sec.querySelector(".sec-toggle");
+      if(b){ b.setAttribute("aria-expanded", "true"); b.setAttribute("aria-label", "Collapse section"); }
+    });
+    sync(); renderQuestions(); render();
+    Array.prototype.forEach.call(evHost.querySelectorAll("input"), function(i){ i.checked = false; });
+    saveNow();
+    toast("Everything reset");
+  });
+
+  renderQuestions();
+  render();
+  saveNow();
+  window.addEventListener("beforeunload", saveNow);
+})();
+</script>
+</body>
+</html>

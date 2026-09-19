@@ -20,6 +20,7 @@ Each skill is a self-contained markdown file that an agent reads as its operatin
 |---|---|
 | [output-styles/ELI5.md](output-styles/ELI5.md) | Output style: fried-brain mode — small words, short sentences, 2 options max |
 | [learning/ai-infra-layers.html](learning/ai-infra-layers.html) | Learning page: AI infrastructure stack — where AWS engineers work vs. what SGLang solves |
+| [career/manage-the-slope.html](career/manage-the-slope.html) | Career dashboard: SDE1 → SDE2 → Tenured SDE2 → next level. Diagram-driven, ~295 words; 118 hover explanations |
 
 ## How it works
 
